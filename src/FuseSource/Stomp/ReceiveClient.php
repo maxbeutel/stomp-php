@@ -72,14 +72,14 @@ class ReceiveClient extends AbstractStompClient
                 $dataLength = strlen($data);
             } while ($dataLength < 2 || $end == false);
 
-            $this->logger->debug('Read callback triggered', array('data' => $data));
+            $this->logger->debug('Read callback triggered', ['data' => $data]);
 
             $frame = Frame::unserializeFrom($data);
             $this->dispatcher->dispatch($frame->getEventName(), new FrameEvent($this, $frame));
         };
         
         $errorCallback = function($buf, $what, $arg) {
-        	$this->logger->debug('Error callback triggered', array('what' => $what, 'arg' => $arg));
+        	$this->logger->debug('Error callback triggered', ['what' => $what, 'arg' => $arg]);
 
             $this->dispatcher->dispatch(SystemEventType::TRANSPORT_ERROR, new ErrorEvent($what));
         };
@@ -125,14 +125,18 @@ class ReceiveClient extends AbstractStompClient
             foreach ($this->dataListeners as $dataListener) {
                 list($theEventName, $theListener) = $dataListener;
 
-                if ($theEventName !== $eventName || $dataListener !== $listener) {
+                if ($theEventName !== $eventName || ($listener && $dataListener !== $listener)) {
                     continue;
                 }
+
+                $this->logger->debug('Sending unsubscribe frame', ['eventName' => $eventName]);
 
                 $frame = Frame::createNew('UNSUBSCRIBE', ['destination' => $eventName]);
                 $this->_writeFrame($frame);
             }
         }
+
+        $this->logger->debug('Unsubscribed', ['eventName' => $eventName]);
 
         return $this;
      }    
@@ -160,7 +164,7 @@ class ReceiveClient extends AbstractStompClient
                 $frame = Frame::createNew('SUBSCRIBE', $headers);
                 $this->_writeFrame($frame);
 
-                $this->logger->debug('Subscribed', array('eventName' => $eventName));   
+                $this->logger->debug('Subscribed', ['eventName' => $eventName]);   
             }
 
 	        $this->dispatcher->addListener($eventName, $listener);
@@ -182,6 +186,14 @@ class ReceiveClient extends AbstractStompClient
         
         return true;
     }
+
+    /*
+TODO: 
+take connect() in listen into account, 
+always take waitForReceipt into account (it should be allowed to call listen multiple times),
+bring ReceiveClient and SendClient together again?,
+break event loop on exception,
+    */
 
    public function listen()
    {
@@ -214,11 +226,82 @@ class ReceiveClient extends AbstractStompClient
         $this->startEventLoop();
     }
 
+    public function connect()
+    {
+        $this->logger->info('About to open socket and listen to socket connection');
+        $this->openSocket();
+
+        $this->addSystemListener(SystemEventType::FRAME_ERROR, function(FrameEvent $event) {
+            $this->logger->info('Got frame error');
+
+            throw new FrameException('Frame error', 0, null, $event->getFrame());
+        });
+
+        $this->addSystemListener(SystemEventType::TRANSPORT_ERROR, function(ErrorEvent $event) {
+            $this->logger->info('Got transport error');
+
+            throw new TransportException($event->getMessage());
+        });
+
+        $this->addSystemListener(SystemEventType::FRAME_CONNECTED, function(FrameEvent $event) {
+            $this->_sessionId = $event->getFrame()->getHeaders()['session'];
+
+            $this->logger->info('Successfully connected to server', ['sessionId' => $this->_sessionId]);
+
+            $this->breakEventLoop();
+        });
+
+        $connectionFrame = Frame::createNew('CONNECT', ['login' => $this->options['username'], 'passcode' => $this->options['password']]);
+        $this->_writeFrame($connectionFrame);
+
+        $this->startEventLoop();                   
+    }
+
+    public function send($destination, $msg, $properties = [])
+    {
+        $messageFrame = Frame::createNew('SEND', array_merge(['destination' => $destination], $properties), $msg, $this->options['waitForReceipt']);
+
+        $this->logger->debug('About to write message frame');
+
+        if ($this->options['waitForReceipt']) {
+            $listener = function(FrameEvent $event) use($messageFrame, &$listener) {
+                $this->unsubscribe(SystemEventType::FRAME_RECEIPT, $listener);
+                $this->breakEventLoop();
+
+                $expected = $messageFrame->getHeaders()['receipt'];
+                $actual = $event->getFrame()->getHeaders()['receipt-id'];
+
+                $this->logger->debug('Got receipt', ['expected' => $expected, 'actual' => $actual]);
+
+                if ($expected !== $actual) {
+                    throw new \FuseSource\Stomp\Exception\UnexpectedReceiptException('Unexpected receipt', 0, null, $event->getFrame());
+                }
+            };
+
+            $this->addSystemListener(SystemEventType::FRAME_RECEIPT, $listener);
+        }
+
+        $this->_writeFrame($messageFrame);
+
+        if ($this->options['waitForReceipt']) {
+            $this->startEventLoop();
+        }
+    }
+
+
+
+    protected function breakEventLoop()
+    {
+        if (is_resource($this->base)) {
+            event_base_loopbreak($this->base);
+        }
+
+        unset($this->base);
+    }
+
     public function disconnect()
     {
-    	if (is_resource($this->base)) {
-    		event_base_loopbreak($this->base);
-    	}
+        $this->breakEventLoop();
 
     	parent::disconnect();
     }
