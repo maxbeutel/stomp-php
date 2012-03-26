@@ -129,7 +129,7 @@ class StompClient
         throw new ConnectionException(sprintf('Could not connect to broker at attempt %d', $connectionAttempts));
     }
 
-    protected function _writeFrame(Frame $frame)
+    protected function writeFrame(Frame $frame)
     {
         $data = (string) $frame;
 
@@ -141,7 +141,7 @@ class StompClient
 
         if (!$success) {
             $this->openSocket();
-            $this->_writeFrame($frame);
+            $this->writeFrame($frame);
         } else {
             if ($frame->waitForReceipt()) {
                 $this->logger->debug('Waiting for frame receipt');
@@ -232,7 +232,7 @@ class StompClient
             }
 
             $frame = Frame::createNew('SUBSCRIBE', $headers);
-            $this->_writeFrame($frame);
+            $this->writeFrame($frame);
 
             $this->logger->debug('Subscribed', ['eventName' => $eventName]);   
         }
@@ -257,7 +257,7 @@ class StompClient
                 $this->logger->debug('Sending unsubscribe frame', ['eventName' => $eventName]);
 
                 $frame = Frame::createNew('UNSUBSCRIBE', ['destination' => $eventName]);
-                $this->_writeFrame($frame);
+                $this->writeFrame($frame);
 
                 unset($this->subscribedEventNames[array_search($eventName, $this->subscribedEventNames, true)]);
             }
@@ -279,7 +279,7 @@ class StompClient
         }           
 
         $frame = Frame::createNew('ACK', $headers);
-        $this->_writeFrame($frame);
+        $this->writeFrame($frame);
         
         return true;
     }
@@ -316,7 +316,7 @@ class StompClient
         });
 
         $connectionFrame = Frame::createNew('CONNECT', ['login' => $this->options['username'], 'passcode' => $this->options['password']]);
-        $this->_writeFrame($connectionFrame);
+        $this->writeFrame($connectionFrame);
 
         $this->startEventLoop();                   
     }
@@ -333,7 +333,7 @@ class StompClient
         $this->logger->debug('About to send message frame');
 
         $frame = Frame::createNew('SEND', array_merge(['destination' => $destination], $properties), $msg, $this->options['waitForReceipt']);
-        $this->_writeFrame($frame);
+        $this->writeFrame($frame);
     }
 
     public function begin($transactionId = null)
@@ -347,7 +347,7 @@ class StompClient
         }
 
         $frame = Frame::createNew('BEGIN', $headers,'', $this->options['waitForReceipt']);
-        $this->_writeFrame($frame);
+        $this->writeFrame($frame);
     }
 
     public function commit($transactionId = null)
@@ -361,7 +361,7 @@ class StompClient
         }
         
         $frame = Frame::createNew('COMMIT', $headers, '', $this->options['waitForReceipt']);
-        $this->_writeFrame($frame);
+        $this->writeFrame($frame);
     }
 
     public function abort($transactionId = null)
@@ -375,7 +375,7 @@ class StompClient
         }
 
         $frame = Frame::createNew('ABORT', $headers, '', $this->options['waitForReceipt']);
-        $this->_writeFrame($frame);
+        $this->writeFrame($frame);
     }
 
     protected function breakEventLoop()
@@ -402,7 +402,7 @@ class StompClient
         }
 
         if (is_resource($this->_socket)) {
-            $this->_writeFrame(Frame::createNew('DISCONNECT', $headers));
+            $this->writeFrame(Frame::createNew('DISCONNECT', $headers));
             fclose($this->_socket);
         }
     }
