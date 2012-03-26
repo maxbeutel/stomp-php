@@ -35,380 +35,380 @@ use BadMethodCallException;
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 /**
  * A Stomp Connection
  *
  * @author Hiram Chirino <hiram@hiramchirino.com>
- * @author Dejan Bosanac <dejan@nighttale.net> 
+ * @author Dejan Bosanac <dejan@nighttale.net>
  * @author Michael Caplan <mcaplan@labnet.net>
  */
 class StompClient
 {
-    protected $brokerUri;
-    protected $options;
-    protected $dispatcher;
-    protected $logger;
-
-    protected $connected = false;
-    protected $attempts = 10;
-    protected $socket;
-    protected $sessionId;
-
-    protected $base;
-    protected $subscribedEventNames = [];    
-
-    public function __construct($uriString, array $options = [])
-    {
-        $defaultOptions = [
-            'username'       => null,
-            'password'       => null,
-            'clientId'       => null,
-            'prefetchSize'   => 1,
-            'connectTimeout' => 60,
-            'waitForReceipt' => false,
-        ];
-
-        $this->brokerUri = new Uri($uriString);
-        $this->options = array_merge($defaultOptions, $options);
-
-        $this->dispatcher = new EventDispatcher();
-
-        $this->logger = new Logger('StompClient');
-        $this->logger->pushHandler(new StreamHandler('php://stdout'));
-    }
-
-    public function setLogger(Logger $logger)
-    {
-        $this->logger = $logger;
-        return $this;
-    }
-
-    public function setDispatcher(EventDispatcherInterface $dispatcher)
-    {
-        $this->dispatcher = $dispatcher;
-        return $this;
-    }
-
-    public function getSessionId()
-    {
-        return $this->sessionId;
-    }    
-
-    protected function openSocket()
-    {
-        $connected = false;
-        $connectionAttempts = 0;
-
-        while (!$connected && $connectionAttempts < $this->attempts) {
-            $connectionErrorNumber = $connectionError = null;
-
-            $this->socket = @fsockopen(
-                'tcp://' . $this->brokerUri->getHost(), 
-                $this->brokerUri->getPort(), 
-                $connectionErrorNumber, 
-                $connectionError, 
-                $this->options['connectTimeout']
-            );
-            
-            if (is_resource($this->socket)) {
-                $this->logger->info(sprintf('Successfully connected to socket at attempt %d', $connectionAttempts));
-
-                return;
-            }
-            
-            if ($this->socket) {
-                @fclose($this->socket);
-            }
-
-            $connectionAttempts++;
-        }
-        
-        throw new ConnectionException(sprintf('Could not connect to broker at attempt %d', $connectionAttempts));
-    }
-
-    protected function writeFrame(Frame $frame)
-    {
-        $data = (string) $frame;
-
-        $this->logger->debug('Writing frame data', array('data' => $data));
-
-        $success = (bool) fwrite($this->socket, $data, strlen($data));
-
-        $this->logger->debug('Frame written to socket', array('success' => $success));
-
-        if (!$success) {
-            $this->openSocket();
-            $this->writeFrame($frame);
-        } else {
-            if ($frame->waitForReceipt()) {
-                $this->logger->debug('Waiting for frame receipt');
-
-                $listener = function(FrameEvent $event) use($frame, &$listener) {
-                    $this->unsubscribe(SystemEventType::FRAME_RECEIPT, $listener);
-                    $this->breakEventLoop();
-
-                    $expected = $frame->getHeaders()['receipt'];
-                    $actual = $event->getFrame()->getHeaders()['receipt-id'];
-
-                    $this->logger->debug('Got receipt', ['expected' => $expected, 'actual' => $actual]);
-
-                    if ($expected !== $actual) {
-                        throw new ReceiptException(sprintf('Expected receipt "%s" but got "%s"', $expected, $actual));
-                    }
-                };
+	protected $brokerUri;
+	protected $options;
+	protected $dispatcher;
+	protected $logger;
+
+	protected $connected = false;
+	protected $attempts = 10;
+	protected $socket;
+	protected $sessionId;
+
+	protected $base;
+	protected $subscribedEventNames = [];
+
+	public function __construct($uriString, array $options = [])
+	{
+		$defaultOptions = [
+		'username'       => null,
+		'password'       => null,
+		'clientId'       => null,
+		'prefetchSize'   => 1,
+		'connectTimeout' => 60,
+		'waitForReceipt' => false,
+		];
+
+		$this->brokerUri = new Uri($uriString);
+		$this->options = array_merge($defaultOptions, $options);
+
+		$this->dispatcher = new EventDispatcher();
+
+		$this->logger = new Logger('StompClient');
+		$this->logger->pushHandler(new StreamHandler('php://stdout'));
+	}
+
+	public function setLogger(Logger $logger)
+	{
+		$this->logger = $logger;
+		return $this;
+	}
+
+	public function setDispatcher(EventDispatcherInterface $dispatcher)
+	{
+		$this->dispatcher = $dispatcher;
+		return $this;
+	}
+
+	public function getSessionId()
+	{
+		return $this->sessionId;
+	}
+
+	protected function openSocket()
+	{
+		$connected = false;
+		$connectionAttempts = 0;
+
+		while (!$connected && $connectionAttempts < $this->attempts) {
+			$connectionErrorNumber = $connectionError = null;
+
+			$this->socket = @fsockopen(
+				'tcp://' . $this->brokerUri->getHost(),
+				$this->brokerUri->getPort(),
+				$connectionErrorNumber,
+				$connectionError,
+				$this->options['connectTimeout']
+				);
+
+			if (is_resource($this->socket)) {
+				$this->logger->info(sprintf('Successfully connected to socket at attempt %d', $connectionAttempts));
 
-                $this->dispatcher->addListener(SystemEventType::FRAME_RECEIPT, $listener);
-
-                $this->startEventLoop();
-            }
-        }
-    }
+				return;
+			}
 
-    protected function startEventLoop()
-    {
-        $readCallback = function($buf, $arg) {
-            $readLength = 1024;
-            $data = '';
-            $end = false;
+			if ($this->socket) {
+				@fclose($this->socket);
+			}
 
-            do {
-                $data .= event_buffer_read($buf, $readLength);
-                
-                if (strpos($data, "\x00") !== false) {
-                    $end = true;
-                    $data = rtrim($data, "\n");
-                }
-                
-                $dataLength = strlen($data);
-            } while ($dataLength < 2 || $end == false);
-
-            $this->logger->debug('Read callback triggered', ['data' => $data]);
-
-            $frame = Frame::unserializeFrom($data);
-            $this->dispatcher->dispatch($frame->getEventName(), new FrameEvent($this, $frame));
-        };
-        
-        $errorCallback = function($buf, $what, $arg) {
-            $this->logger->debug('Error callback triggered', ['what' => $what, 'arg' => $arg]);
-
-            $this->dispatcher->dispatch(SystemEventType::TRANSPORT_ERROR, new ErrorEvent($this, $what));
-        };
-
-        $this->logger->info('Starting event loop');
-        
-        $this->base = event_base_new();
-        $eb = event_buffer_new($this->socket, $readCallback, NULL, $errorCallback, $this->base);
+			$connectionAttempts++;
+		}
+
+		throw new ConnectionException(sprintf('Could not connect to broker at attempt %d', $connectionAttempts));
+	}
+
+	protected function writeFrame(Frame $frame)
+	{
+		$data = (string) $frame;
+
+		$this->logger->debug('Writing frame data', array('data' => $data));
 
-        event_buffer_base_set($eb, $this->base);
-        event_buffer_enable($eb, EV_READ);
+		$success = (bool) fwrite($this->socket, $data, strlen($data));
+
+		$this->logger->debug('Frame written to socket', array('success' => $success));
 
-        event_base_loop($this->base);
-    }
+		if (!$success) {
+			$this->openSocket();
+			$this->writeFrame($frame);
+		} else {
+			if ($frame->waitForReceipt()) {
+				$this->logger->debug('Waiting for frame receipt');
 
-    public function subscribe($eventName, callable $listener)
-    {
-        if (!$this->connected) {
-            throw new BadMethodCallException('Cant subscribe before connecting');
-        }
+				$listener = function(FrameEvent $event) use($frame, &$listener) {
+					$this->unsubscribe(SystemEventType::FRAME_RECEIPT, $listener);
+					$this->breakEventLoop();
 
-        if (!preg_match('#^\/(queue|topic|temp-queue|temp-topic)\/#i', $eventName)) {
-            throw new InvalidArgumentException(sprintf('Event name must begin with one of /queue /topic /temp-queue /temp-topic, got "%s"', $eventName));     
-        }
+					$expected = $frame->getHeaders()['receipt'];
+					$actual = $event->getFrame()->getHeaders()['receipt-id'];
 
-        if (!in_array($eventName, $this->subscribedEventNames, true)) {
-            $this->subscribedEventNames[] = $eventName;
+					$this->logger->debug('Got receipt', ['expected' => $expected, 'actual' => $actual]);
 
-            $headers = [
-                'ack'                   => 'client', 
-                'destination'           => $eventName, 
-                'activemq.prefetchSize' => $this->options['prefetchSize'],
-            ];
+					if ($expected !== $actual) {
+						throw new ReceiptException(sprintf('Expected receipt "%s" but got "%s"', $expected, $actual));
+					}
+				};
 
-            if ($this->options['clientId']) {
-                $headers['activemq.subcriptionName'] = $this->options['clientId'];
-            }
+				$this->dispatcher->addListener(SystemEventType::FRAME_RECEIPT, $listener);
 
-            $frame = Frame::createNew('SUBSCRIBE', $headers);
-            $this->writeFrame($frame);
+				$this->startEventLoop();
+			}
+		}
+	}
 
-            $this->logger->debug('Subscribed', ['eventName' => $eventName]);   
-        }
+	protected function startEventLoop()
+	{
+		$readCallback = function($buf, $arg) {
+			$readLength = 1024;
+			$data = '';
+			$end = false;
 
-        $this->dispatcher->addListener($eventName, $listener);
+			do {
+				$data .= event_buffer_read($buf, $readLength);
 
-        return $this;
-    }
+				if (strpos($data, "\x00") !== false) {
+					$end = true;
+					$data = rtrim($data, "\n");
+				}
 
-    public function unsubscribe($eventName, callable $listener)
-    {
-        $this->dispatcher->removeListener($eventName, $listener);
+				$dataLength = strlen($data);
+			} while ($dataLength < 2 || $end == false);
 
-        if (preg_match('#^\/(queue|topic|temp-queue|temp-topic)\/#i', $eventName)) {
-            foreach ($this->dataListeners as $dataListener) {
-                list($theEventName, $theListener) = $dataListener;
+			$this->logger->debug('Read callback triggered', ['data' => $data]);
 
-                if ($theEventName !== $eventName || ($listener && $dataListener !== $listener)) {
-                    continue;
-                }
+			$frame = Frame::unserializeFrom($data);
+			$this->dispatcher->dispatch($frame->getEventName(), new FrameEvent($this, $frame));
+		};
 
-                $this->logger->debug('Sending unsubscribe frame', ['eventName' => $eventName]);
+		$errorCallback = function($buf, $what, $arg) {
+			$this->logger->debug('Error callback triggered', ['what' => $what, 'arg' => $arg]);
 
-                $frame = Frame::createNew('UNSUBSCRIBE', ['destination' => $eventName]);
-                $this->writeFrame($frame);
+			$this->dispatcher->dispatch(SystemEventType::TRANSPORT_ERROR, new ErrorEvent($this, $what));
+		};
 
-                unset($this->subscribedEventNames[array_search($eventName, $this->subscribedEventNames, true)]);
-            }
-        }
+		$this->logger->info('Starting event loop');
 
-        $this->logger->debug('Unsubscribed', ['eventName' => $eventName]);
+		$this->base = event_base_new();
+		$eb = event_buffer_new($this->socket, $readCallback, NULL, $errorCallback, $this->base);
 
-        return $this;
-     }    
+		event_buffer_base_set($eb, $this->base);
+		event_buffer_enable($eb, EV_READ);
 
-    public function ack(Frame $frame, $transactionId = null)
-    {
-        $this->logger->debug('Acking frame');
+		event_base_loop($this->base);
+	}
 
-        $headers = $frame->getHeaders();
-        
-        if ($transactionId) {
-            $headers['transaction'] = $transactionId;
-        }           
+	public function subscribe($eventName, callable $listener)
+	{
+		if (!$this->connected) {
+			throw new BadMethodCallException('Cant subscribe before connecting');
+		}
 
-        $frame = Frame::createNew('ACK', $headers);
-        $this->writeFrame($frame);
-        
-        return true;
-    }
+		if (!preg_match('#^\/(queue|topic|temp-queue|temp-topic)\/#i', $eventName)) {
+			throw new InvalidArgumentException(sprintf('Event name must begin with one of /queue /topic /temp-queue /temp-topic, got "%s"', $eventName));
+		}
 
-    public function connect()
-    {
-        $this->logger->info('About to open socket and listen to socket connection');
-        $this->openSocket();
+		if (!in_array($eventName, $this->subscribedEventNames, true)) {
+			$this->subscribedEventNames[] = $eventName;
 
-        $this->dispatcher->addListener(SystemEventType::FRAME_ERROR, function(FrameEvent $event) {
-            $this->logger->err('Got frame error');
+			$headers = [
+			'ack'                   => 'client',
+			'destination'           => $eventName,
+			'activemq.prefetchSize' => $this->options['prefetchSize'],
+			];
 
-            $this->breakEventLoop();
+			if ($this->options['clientId']) {
+				$headers['activemq.subcriptionName'] = $this->options['clientId'];
+			}
 
-            throw new FrameException('Frame error', 0, null, $event->getFrame());
-        });
+			$frame = Frame::createNew('SUBSCRIBE', $headers);
+			$this->writeFrame($frame);
 
-        $this->dispatcher->addListener(SystemEventType::TRANSPORT_ERROR, function(ErrorEvent $event) {
-            $this->logger->err('Got transport error');
+			$this->logger->debug('Subscribed', ['eventName' => $eventName]);
+		}
 
-            $this->breakEventLoop();
+		$this->dispatcher->addListener($eventName, $listener);
 
-            throw new TransportException($event->getMessage());
-        });
+		return $this;
+	}
 
-        $this->dispatcher->addListener(SystemEventType::FRAME_CONNECTED, function(FrameEvent $event) {
-            $this->sessionId = $event->getFrame()->getHeaders()['session'];
+	public function unsubscribe($eventName, callable $listener)
+	{
+		$this->dispatcher->removeListener($eventName, $listener);
 
-            $this->logger->info('Successfully connected to server', ['sessionId' => $this->sessionId]);
+		if (preg_match('#^\/(queue|topic|temp-queue|temp-topic)\/#i', $eventName)) {
+			foreach ($this->dataListeners as $dataListener) {
+				list($theEventName, $theListener) = $dataListener;
 
-            $this->breakEventLoop();
+				if ($theEventName !== $eventName || ($listener && $dataListener !== $listener)) {
+					continue;
+				}
 
-            $this->connected = true;
-        });
+				$this->logger->debug('Sending unsubscribe frame', ['eventName' => $eventName]);
 
-        $connectionFrame = Frame::createNew('CONNECT', ['login' => $this->options['username'], 'passcode' => $this->options['password']]);
-        $this->writeFrame($connectionFrame);
+				$frame = Frame::createNew('UNSUBSCRIBE', ['destination' => $eventName]);
+				$this->writeFrame($frame);
 
-        $this->startEventLoop();                   
-    }
+				unset($this->subscribedEventNames[array_search($eventName, $this->subscribedEventNames, true)]);
+			}
+		}
 
-   public function listen()
-   {
-        $this->logger->debug('About to start event loop');
+		$this->logger->debug('Unsubscribed', ['eventName' => $eventName]);
 
-        $this->startEventLoop();
-    }
+		return $this;
+	}
 
-    public function send($destination, $msg, $properties = [])
-    {
-        $this->logger->debug('About to send message frame');
+	public function ack(Frame $frame, $transactionId = null)
+	{
+		$this->logger->debug('Acking frame');
 
-        $frame = Frame::createNew('SEND', array_merge(['destination' => $destination], $properties), $msg, $this->options['waitForReceipt']);
-        $this->writeFrame($frame);
-    }
+		$headers = $frame->getHeaders();
 
-    public function begin($transactionId = null)
-    {
-        $this->logger->debug('About to start transaction', ['transactionId' => $transactionId]);
+		if ($transactionId) {
+			$headers['transaction'] = $transactionId;
+		}
 
-        $headers = [];
+		$frame = Frame::createNew('ACK', $headers);
+		$this->writeFrame($frame);
 
-        if ($transactionId) {
-            $headers['transaction'] = $transactionId;
-        }
+		return true;
+	}
 
-        $frame = Frame::createNew('BEGIN', $headers,'', $this->options['waitForReceipt']);
-        $this->writeFrame($frame);
-    }
+	public function connect()
+	{
+		$this->logger->info('About to open socket and listen to socket connection');
+		$this->openSocket();
 
-    public function commit($transactionId = null)
-    {
-        $this->logger->debug('About to commit transaction', ['transactionId' => $transactionId]);
+		$this->dispatcher->addListener(SystemEventType::FRAME_ERROR, function(FrameEvent $event) {
+			$this->logger->err('Got frame error');
 
-        $headers = [];
-        
-        if ($transactionId) {
-            $headers['transaction'] = $transactionId;
-        }
-        
-        $frame = Frame::createNew('COMMIT', $headers, '', $this->options['waitForReceipt']);
-        $this->writeFrame($frame);
-    }
+			$this->breakEventLoop();
 
-    public function abort($transactionId = null)
-    {
-        $this->logger->debug('About to abort transaction', ['transactionId' => $transactionId]);
+			throw new FrameException('Frame error', 0, null, $event->getFrame());
+		});
 
-        $headers = [];
+		$this->dispatcher->addListener(SystemEventType::TRANSPORT_ERROR, function(ErrorEvent $event) {
+			$this->logger->err('Got transport error');
 
-        if ($transactionId) {
-            $headers['transaction'] = $transactionId;
-        }
+			$this->breakEventLoop();
 
-        $frame = Frame::createNew('ABORT', $headers, '', $this->options['waitForReceipt']);
-        $this->writeFrame($frame);
-    }
+			throw new TransportException($event->getMessage());
+		});
 
-    protected function breakEventLoop()
-    {
-        $this->logger->debug('Breaking event loop');
+		$this->dispatcher->addListener(SystemEventType::FRAME_CONNECTED, function(FrameEvent $event) {
+			$this->sessionId = $event->getFrame()->getHeaders()['session'];
 
-        if (is_resource($this->base)) {
-            event_base_loopbreak($this->base);
-        }
+			$this->logger->info('Successfully connected to server', ['sessionId' => $this->sessionId]);
 
-        unset($this->base);
-    } 
+			$this->breakEventLoop();
 
-    public function disconnect()
-    {
-        $this->logger->info('Shutting down gracefully');
+			$this->connected = true;
+		});
 
-        $this->breakEventLoop();
+		$connectionFrame = Frame::createNew('CONNECT', ['login' => $this->options['username'], 'passcode' => $this->options['password']]);
+		$this->writeFrame($connectionFrame);
 
-        $headers = [];
+		$this->startEventLoop();
+	}
 
-        if ($this->options['clientId']) {
-            $headers['client-id'] = $this->options['clientId'];
-        }
+	public function listen()
+	{
+		$this->logger->debug('About to start event loop');
 
-        if (is_resource($this->socket)) {
-            $this->writeFrame(Frame::createNew('DISCONNECT', $headers));
-            fclose($this->socket);
-        }
-    }
+		$this->startEventLoop();
+	}
 
-    public function __destruct()
-    {
-        $this->disconnect();
-    }
+	public function send($destination, $msg, $properties = [])
+	{
+		$this->logger->debug('About to send message frame');
+
+		$frame = Frame::createNew('SEND', array_merge(['destination' => $destination], $properties), $msg, $this->options['waitForReceipt']);
+		$this->writeFrame($frame);
+	}
+
+	public function begin($transactionId = null)
+	{
+		$this->logger->debug('About to start transaction', ['transactionId' => $transactionId]);
+
+		$headers = [];
+
+		if ($transactionId) {
+			$headers['transaction'] = $transactionId;
+		}
+
+		$frame = Frame::createNew('BEGIN', $headers,'', $this->options['waitForReceipt']);
+		$this->writeFrame($frame);
+	}
+
+	public function commit($transactionId = null)
+	{
+		$this->logger->debug('About to commit transaction', ['transactionId' => $transactionId]);
+
+		$headers = [];
+
+		if ($transactionId) {
+			$headers['transaction'] = $transactionId;
+		}
+
+		$frame = Frame::createNew('COMMIT', $headers, '', $this->options['waitForReceipt']);
+		$this->writeFrame($frame);
+	}
+
+	public function abort($transactionId = null)
+	{
+		$this->logger->debug('About to abort transaction', ['transactionId' => $transactionId]);
+
+		$headers = [];
+
+		if ($transactionId) {
+			$headers['transaction'] = $transactionId;
+		}
+
+		$frame = Frame::createNew('ABORT', $headers, '', $this->options['waitForReceipt']);
+		$this->writeFrame($frame);
+	}
+
+	protected function breakEventLoop()
+	{
+		$this->logger->debug('Breaking event loop');
+
+		if (is_resource($this->base)) {
+			event_base_loopbreak($this->base);
+		}
+
+		unset($this->base);
+	}
+
+	public function disconnect()
+	{
+		$this->logger->info('Shutting down gracefully');
+
+		$this->breakEventLoop();
+
+		$headers = [];
+
+		if ($this->options['clientId']) {
+			$headers['client-id'] = $this->options['clientId'];
+		}
+
+		if (is_resource($this->socket)) {
+			$this->writeFrame(Frame::createNew('DISCONNECT', $headers));
+			fclose($this->socket);
+		}
+	}
+
+	public function __destruct()
+	{
+		$this->disconnect();
+	}
 }

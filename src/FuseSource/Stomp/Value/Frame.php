@@ -20,107 +20,102 @@ use FuseSource\Stomp\Event\SystemEventType;
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 class Frame
 {
-    private $command;
-    private $headers = [];
-    private $body;
-    private $waitForReceipt;
+	private $command;
+	private $headers = [];
+	private $body;
+	private $waitForReceipt;
 
-    private function __construct($command, array $headers, $body, $waitForReceipt)
-    {
-        $this->command = $command;
-        $this->headers = $headers;
-        $this->body = $body;
-        $this->waitForReceipt = $waitForReceipt;
-    }
-    
-    public static function unserializeFrom($data)
-    {
-        list($header, $body) = explode("\n\n", $data, 2);
-        
-        $header = explode("\n", $header);
-        $headers = [];
-        
-        $command = null;
-        
-        foreach ($header as $v) {
-            if (isset($command)) {
-                list ($name, $value) = explode(':', $v, 2);
-                $headers[$name] = $value;
-            } else {
-                $command = $v;
-            }
-        }
-        
-        return new static($command, $headers, $body, false);
-    }
-    
-    public static function createNew($command = null, $headers = null, $body = null, $waitForReceipt = false)
-    {
-        if ($waitForReceipt) {
-            $headers['receipt'] = md5(microtime() . uniqid(mt_rand(), true));
-        }
+	private function __construct($command, array $headers, $body, $waitForReceipt)
+	{
+		$this->command = $command;
+		$this->headers = $headers;
+		$this->body = $body;
+		$this->waitForReceipt = $waitForReceipt;
+	}
 
-        return new static($command, (array) $headers, $body, $waitForReceipt);
-    }
-    
-    public function getEventName()
-    {
-        if ($this->command === 'CONNECTED') {
-            return SystemEventType::FRAME_CONNECTED;
-        }
-        
-        if ($this->command === 'ERROR') {
-            return SystemEventType::FRAME_ERROR;
-        }
+	public static function unserializeFrom($data)
+	{
+		list($header, $body) = explode("\n\n", $data, 2);
 
-        if ($this->command === 'RECEIPT') {
-            return SystemEventType::FRAME_RECEIPT;
-        }
+		$header = explode("\n", $header);
+		$headers = [];
 
-        return $this->headers['destination'];
-    }
-    
-    public function getCommand()
-    {
-        return $this->command;
-    }
-    
-    public function getHeaders()
-    {
-        return $this->headers;
-    }
-    
-    // @TODO take if (isset($frame->headers['transformation']) && $frame->headers['transformation'] == 'jms-map-json') into account?
-    public function getBody()
-    {
-        return $this->body;
-    }
+		$command = null;
 
-    public function waitForReceipt()
-    {
-        return $this->waitForReceipt;
-    }
-    
-    /**
-     * Convert frame to transportable string
-     *
-     * @return string
-     */
-    public function __toString()
-    {
-        $data = $this->command . "\n";
-        
-        foreach ($this->headers as $name => $value) {
-            $data .= $name . ': ' . $value . "\n";
-        }
-        
-        $data .= "\n";
-        $data .= $this->body;
-        return $data .= "\x00";
-    }
+		foreach ($header as $v) {
+			if (isset($command)) {
+				list ($name, $value) = explode(':', $v, 2);
+				$headers[$name] = $value;
+			} else {
+				$command = $v;
+			}
+		}
+
+		return new static($command, $headers, $body, false);
+	}
+
+	public static function createNew($command = null, $headers = null, $body = null, $waitForReceipt = false)
+	{
+		if ($waitForReceipt) {
+			$headers['receipt'] = md5(microtime() . uniqid(mt_rand(), true));
+		}
+
+		return new static($command, (array) $headers, $body, $waitForReceipt);
+	}
+
+	public function getEventName()
+	{
+		if ($this->command === 'CONNECTED') {
+			return SystemEventType::FRAME_CONNECTED;
+		}
+
+		if ($this->command === 'ERROR') {
+			return SystemEventType::FRAME_ERROR;
+		}
+
+		if ($this->command === 'RECEIPT') {
+			return SystemEventType::FRAME_RECEIPT;
+		}
+
+		return $this->headers['destination'];
+	}
+
+	public function getCommand()
+	{
+		return $this->command;
+	}
+
+	public function getHeaders()
+	{
+		return $this->headers;
+	}
+
+	// @TODO take if (isset($frame->headers['transformation']) && $frame->headers['transformation'] == 'jms-map-json') into account?
+	public function getBody()
+	{
+		return $this->body;
+	}
+
+	public function waitForReceipt()
+	{
+		return $this->waitForReceipt;
+	}
+
+	public function __toString()
+	{
+		$data = $this->command . "\n";
+
+		foreach ($this->headers as $name => $value) {
+			$data .= $name . ': ' . $value . "\n";
+		}
+
+		$data .= "\n";
+		$data .= $this->body;
+		return $data .= "\x00";
+	}
 }
