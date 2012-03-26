@@ -29,9 +29,8 @@ class FrameEvent extends Event
 {
 	private $connection;
 	private $frame;
-	private $receiptFrame;
 
-	public function __construct(StompClient $connection, Frame $frame, Frame $receiptFrame = null)
+	public function __construct(StompClient $connection, Frame $frame)
 	{
 		$this->connection = $connection;
 		$this->frame = $frame;
@@ -45,10 +44,5 @@ class FrameEvent extends Event
 	public function getFrame()
 	{
 		return $this->frame;
-	}
-
-	public function getReceiptFrame()
-	{
-		return $this->receiptFrame;
 	}
 }
