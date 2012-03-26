@@ -29,7 +29,9 @@ final class SystemEventType
 
 	const FRAME_RECEIPT = 'receipt';
 
-	const TRANSPORT_ERROR = '__transport/error';
+	const FRAME_RECEIPT_MISMATCH_ERROR = 'receiptMismatchError';
+
+	const TRANSPORT_ERROR = 'transportError';
 
 	public static function getValidEventTypes()
 	{
@@ -38,6 +40,7 @@ final class SystemEventType
 			self::FRAME_ERROR,
 			self::TRANSPORT_ERROR,
 			self::FRAME_RECEIPT,
+			self::FRAME_RECEIPT_MISMATCH_ERROR,
 		];
 	}
 }

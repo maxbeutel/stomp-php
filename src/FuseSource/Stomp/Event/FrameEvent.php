@@ -2,7 +2,7 @@
 
 namespace FuseSource\Stomp\Event;
 
-use FuseSource\Stomp\AbstractStompClient;
+use FuseSource\Stomp\StompClient;
 use FuseSource\Stomp\Value\Frame;
 use Symfony\Component\EventDispatcher\Event;
 
@@ -29,8 +29,9 @@ class FrameEvent extends Event
 {
 	private $connection;
 	private $frame;
+	private $receiptFrame;
 
-	public function __construct(AbstractStompClient $connection, Frame $frame)
+	public function __construct(StompClient $connection, Frame $frame, Frame $receiptFrame = null)
 	{
 		$this->connection = $connection;
 		$this->frame = $frame;
@@ -44,5 +45,10 @@ class FrameEvent extends Event
 	public function getFrame()
 	{
 		return $this->frame;
+	}
+
+	public function getReceiptFrame()
+	{
+		return $this->receiptFrame;
 	}
 }
