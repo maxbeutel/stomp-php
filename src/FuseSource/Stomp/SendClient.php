@@ -35,47 +35,15 @@ use InvalidArgumentException;
 
 class SendClient extends AbstractStompClient
 {
-
-    /**
-     * Send a message to a destination in the messaging system 
-     *
-     * @param string $destination Destination queue
-     * @param string|Frame $msg Message
-     * @param array $properties
-     * @param boolean $sync Perform request synchronously
-     * @return boolean
-     */
-    public function send($destination, $msg, $properties = [], $sync = null)
+    public function send($destination, $msg, $properties = [], $waitForReceipt = false)
     {
-        $headers = $properties;
-        $headers['destination'] = $destination;
+        $headers = array_merge(['destination' => $destination], $properties);
         
-        $frame = Frame::createNew('SEND', $headers, $msg);
+        $frame = Frame::createNew('SEND', $headers, $msg, $waitForReceipt);
 
-        $this->_prepareReceipt($frame, $sync);
         $this->_writeFrame($frame);
-        return $this->_waitForReceipt($frame, $sync);
+        return $this->_waitForReceipt($frame);
     }
-
-    /**
-     * Prepair frame receipt
-     *
-     * @param Frame $frame
-     * @param boolean $sync
-     */
-    protected function _prepareReceipt(Frame $frame, $sync)
-    {
-        $receive = $this->sync;
-
-        if ($sync !== null) {
-            $receive = $sync;
-        }
-
-        if ($receive == true) {
-            $frame->headers['receipt'] = md5(microtime());
-        }
-    }
-
     /**
      * Wait for receipt
      *
@@ -86,10 +54,6 @@ class SendClient extends AbstractStompClient
      */
     protected function _waitForReceipt(Frame $frame, $sync)
     {
-        $receive = $this->sync;
-        if ($sync !== null) {
-            $receive = $sync;
-        }
         if ($receive == true) {
             $id = (isset($frame->headers['receipt'])) ? $frame->headers['receipt'] : null;
             if ($id == null) {

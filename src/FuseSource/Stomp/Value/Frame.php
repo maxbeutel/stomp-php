@@ -2,7 +2,7 @@
 
 namespace FuseSource\Stomp\Value;
 
-use FuseSource\Stomp\Event\EventType;
+use FuseSource\Stomp\Event\SystemEventType;
 
 /**
  *
@@ -34,19 +34,14 @@ class Frame
     private $command;
     private $headers = [];
     private $body;
-    
-    /**
-     * Constructor
-     *
-     * @param string $command
-     * @param array $headers
-     * @param string $body
-     */
-    private function __construct($command, array $headers, $body)
+    private $waitForReceipt;
+
+    private function __construct($command, array $headers, $body, $waitForReceipt)
     {
         $this->command = $command;
         $this->headers = $headers;
         $this->body = $body;
+        $this->waitForReceipt = $waitForReceipt;
     }
     
     public static function unserializeFrom($data)
@@ -67,22 +62,26 @@ class Frame
             }
         }
         
-        return new static($command, $headers, $body);
+        return new static($command, $headers, $body, false);
     }
     
-    public static function createNew($command = null, $headers = null, $body = null)
+    public static function createNew($command = null, $headers = null, $body = null, $waitForReceipt = false)
     {
-        return new static($command, (array) $headers, $body);
+        if ($waitForReceipt) {
+            $headers['receipt'] = md5(microtime());
+        }
+
+        return new static($command, (array) $headers, $body, $waitForReceipt);
     }
     
     public function getEventName()
     {
         if ($this->command === 'CONNECTED') {
-            return EventType::FRAME_CONNECTED;
+            return SystemEventType::FRAME_CONNECTED;
         }
         
         if ($this->command === 'ERROR') {
-            return EventType::FRAME_ERROR;
+            return SystemEventType::FRAME_ERROR;
         }
 
         return $this->headers['destination'];
@@ -102,6 +101,11 @@ class Frame
     public function getBody()
     {
         return $this->body;
+    }
+
+    public function waitForReceipt()
+    {
+        return $this->waitForReceipt;
     }
     
     /**

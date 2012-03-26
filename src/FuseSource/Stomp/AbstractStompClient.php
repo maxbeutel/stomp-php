@@ -49,18 +49,6 @@ use InvalidArgumentException;
  */
 abstract class AbstractStompClient
 {
-    protected $_hosts = array();
-    protected $_params = array();
-    protected $_subscriptions = array();
-    
-    protected $_username = '';
-    protected $_password = '';
-    protected $_read_timeout_seconds = 60;
-    protected $_read_timeout_milliseconds = 0;
-    protected $_connect_timeout_seconds = 60;
-    
-
-
     protected $brokerUri;
     protected $options;
     protected $logger;
@@ -69,21 +57,14 @@ abstract class AbstractStompClient
     protected $_socket;
     protected $_sessionId;
 
-
-    /**
-     * Constructor
-     *
-     * @param string $brokerUri Broker URL
-     * @throws StompException
-     */
     public function __construct($uriString, array $options = [])
     {
         $defaultOptions = [
-            'username'      => null,
-            'password'      => null,
-            'clientId'      => null,
-            'prefetchSize'  => 1,
-            'readTimeout'   
+            'username'       => null,
+            'password'       => null,
+            'clientId'       => null,
+            'prefetchSize'   => 1,
+            'connectTimeout' => 60,   
         ];
 
         $this->brokerUri = new Uri($uriString);
@@ -98,23 +79,20 @@ abstract class AbstractStompClient
         return $this;
     }
 
-    /**
-     * Make socket connection to the server
-     *
-     * @throws StompException
-     */
     protected function openSocket()
     {
         $connected = false;
         $connectionAttempts = 0;
 
-        while (!$connected && $connectionAttempts < $this->_attempts) { 
+        while (!$connected && $connectionAttempts < $this->_attempts) {
+            $connectionErrorNumber = $connectionError = null;
+
             $this->_socket = @fsockopen(
                 'tcp://' . $this->brokerUri->getHost(), 
                 $this->brokerUri->getPort(), 
                 $connectionErrorNumber, 
                 $connectionError, 
-                $this->_connect_timeout_seconds
+                $this->options['connectTimeout']
             );
             
             if (is_resource($this->_socket)) {
@@ -156,7 +134,7 @@ abstract class AbstractStompClient
 
     public function disconnect()
     {
-        $this->logger->debug('Shutting down gracefully');
+        $this->logger->info('Shutting down gracefully');
 
         $headers = [];
 
