@@ -7,6 +7,7 @@ use FuseSource\Stomp\Exception\FrameException;
 use FuseSource\Stomp\Value\Uri;
 use FuseSource\Stomp\Value\Frame;
 use FuseSource\Stomp\Event\SystemEventType;
+use FuseSource\Stomp\Exception\UnexpectedReceiptException;
 use FuseSource\Stomp\Event\FrameEvent;
 use FuseSource\Stomp\Event\ErrorEvent;
 use Symfony\Component\EventDispatcher\EventDispatcher;
@@ -39,7 +40,7 @@ class ReceiveClient extends AbstractStompClient
 	protected $dispatcher;
 
 	protected $base;
-	protected $dataListeners = [];
+	protected $subscribedEventNames = [];
 
 	public function __construct($uriString, array $options = [])
 	{
@@ -95,23 +96,47 @@ class ReceiveClient extends AbstractStompClient
         event_base_loop($this->base);
     }
 
-    public function addDataListener($eventName, callable $listener)
+    public function subscribe($eventName, callable $listener)
     {
-        if (!preg_match('#^\/(queue|topic|temp-queue|temp-topic)\/#i', $eventName)) {
-            throw new InvalidArgumentException(sprintf('Event Name for data listener must begin with one of /queue/ /topic/ /temp-queue/ /temp-topic/ %s given', $eventName));
+        if (in_array($eventName, SystemEventType::getValidEventTypes(), true)) {
+            return $this->addSystemListener($eventName, $listener);
         }
 
-        $this->dataListeners[] = [$eventName, $listener];
+        if (preg_match('#^\/(queue|topic|temp-queue|temp-topic)\/#i', $eventName)) {
+            return $this->addDataListener($eventName, $listener);    
+        }
+        
+        throw new InvalidArgumentException('Given event name "%s" can neither be system listener nor data listener');
+    }
+
+    protected function addDataListener($eventName, callable $listener)
+    {
+        if (!in_array($eventName, $this->subscribedEventNames, true)) {
+            $this->subscribedEventNames[] = $eventName;
+
+            $headers = [
+                'ack'                   => 'client', 
+                'destination'           => $eventName, 
+                'activemq.prefetchSize' => $this->options['prefetchSize'],
+            ];
+
+            if ($this->options['clientId']) {
+                $headers['activemq.subcriptionName'] = $this->options['clientId'];
+            }
+
+            $frame = Frame::createNew('SUBSCRIBE', $headers);
+            $this->_writeFrame($frame);
+
+            $this->logger->debug('Subscribed', ['eventName' => $eventName]);   
+        }
+
+        $this->dispatcher->addListener($eventName, $listener);
 
         return $this;
     }
 
-    public function addSystemListener($eventName, callable $listener)
+    protected function addSystemListener($eventName, callable $listener)
     {
-        if (!in_array($eventName, SystemEventType::getValidEventTypes(), true)) {
-            throw new InvalidArgumentException(sprintf('Unknown system event %s given', $eventName));
-        }
-
         $this->dispatcher->addListener($eventName, $listener);
 
         return $this;
@@ -133,6 +158,8 @@ class ReceiveClient extends AbstractStompClient
 
                 $frame = Frame::createNew('UNSUBSCRIBE', ['destination' => $eventName]);
                 $this->_writeFrame($frame);
+
+                unset($this->subscribedEventNames[array_search($eventName, $this->subscribedEventNames, true)]);
             }
         }
 
@@ -140,36 +167,6 @@ class ReceiveClient extends AbstractStompClient
 
         return $this;
      }    
-
-    protected function addPreRegisteredListeners()
-    {
-        $subscribedEventNames = [];
-
-        foreach ($this->dataListeners as $dataListener) {
-            list($eventName, $listener) = $dataListener;
-
-            if (!in_array($eventName, $subscribedEventNames, true)) {
-                $subscribedEventNames[] = $eventName;
-
-                $headers = [
-                    'ack'                   => 'client', 
-                    'destination'           => $eventName, 
-                    'activemq.prefetchSize' => $this->options['prefetchSize'],
-                ];
-
-                if ($this->options['clientId']) {
-                    $headers['activemq.subcriptionName'] = $this->options['clientId'];
-                }
-
-                $frame = Frame::createNew('SUBSCRIBE', $headers);
-                $this->_writeFrame($frame);
-
-                $this->logger->debug('Subscribed', ['eventName' => $eventName]);   
-            }
-
-	        $this->dispatcher->addListener($eventName, $listener);
-        }
-    }
 
     public function ack(Frame $frame, $transactionId = null)
     {
@@ -195,55 +192,26 @@ bring ReceiveClient and SendClient together again?,
 break event loop on exception,
     */
 
-   public function listen()
-   {
-   		$this->logger->info('About to open socket and listen to socket connection');
 
-   		$this->openSocket();
-
-        $this->addSystemListener(SystemEventType::FRAME_CONNECTED, function(FrameEvent $event) {
-        	$this->logger->info('Successfully connected to server');
-
-            $this->_sessionId = $event->getFrame()->getHeaders()['session'];
-            $this->addPreRegisteredListeners();
-        });
-
-        $this->addSystemListener(SystemEventType::FRAME_ERROR, function(FrameEvent $event) {
-            $this->logger->info('Got frame error');
-
-            throw new FrameException('Frame error', 0, null, $event->getFrame());
-        });
-
-        $this->addSystemListener(SystemEventType::TRANSPORT_ERROR, function(ErrorEvent $event) {
-        	$this->logger->info('Got transport error');
-
-        	throw new TransportException($event->getMessage());
-        });
-
-        $connectionFrame = Frame::createNew('CONNECT', ['login' => $this->options['username'], 'passcode' => $this->options['password']]);
-        $this->_writeFrame($connectionFrame);
-
-        $this->startEventLoop();
-    }
 
     public function connect()
     {
         $this->logger->info('About to open socket and listen to socket connection');
         $this->openSocket();
 
-        $this->addSystemListener(SystemEventType::FRAME_ERROR, function(FrameEvent $event) {
+        $this->subscribe(SystemEventType::FRAME_ERROR, function(FrameEvent $event) {
             $this->logger->info('Got frame error');
 
             throw new FrameException('Frame error', 0, null, $event->getFrame());
         });
 
-        $this->addSystemListener(SystemEventType::TRANSPORT_ERROR, function(ErrorEvent $event) {
+        $this->subscribe(SystemEventType::TRANSPORT_ERROR, function(ErrorEvent $event) {
             $this->logger->info('Got transport error');
 
             throw new TransportException($event->getMessage());
         });
 
-        $this->addSystemListener(SystemEventType::FRAME_CONNECTED, function(FrameEvent $event) {
+        $this->subscribe(SystemEventType::FRAME_CONNECTED, function(FrameEvent $event) {
             $this->_sessionId = $event->getFrame()->getHeaders()['session'];
 
             $this->logger->info('Successfully connected to server', ['sessionId' => $this->_sessionId]);
@@ -257,38 +225,85 @@ break event loop on exception,
         $this->startEventLoop();                   
     }
 
+   public function listen()
+   {
+        $this->addPreRegisteredListeners();
+        $this->startEventLoop();
+    }
+
+    /* ############### */
+
+    // @TODO implement common waitForReceiptLogic in _writeFrameMethod() ?
     public function send($destination, $msg, $properties = [])
     {
-        $messageFrame = Frame::createNew('SEND', array_merge(['destination' => $destination], $properties), $msg, $this->options['waitForReceipt']);
+        $frame = Frame::createNew('SEND', array_merge(['destination' => $destination], $properties), $msg, $this->options['waitForReceipt']);
 
         $this->logger->debug('About to write message frame');
 
         if ($this->options['waitForReceipt']) {
-            $listener = function(FrameEvent $event) use($messageFrame, &$listener) {
+            $listener = function(FrameEvent $event) use($frame, &$listener) {
                 $this->unsubscribe(SystemEventType::FRAME_RECEIPT, $listener);
                 $this->breakEventLoop();
 
-                $expected = $messageFrame->getHeaders()['receipt'];
+                $expected = $frame->getHeaders()['receipt'];
                 $actual = $event->getFrame()->getHeaders()['receipt-id'];
 
                 $this->logger->debug('Got receipt', ['expected' => $expected, 'actual' => $actual]);
 
                 if ($expected !== $actual) {
-                    throw new \FuseSource\Stomp\Exception\UnexpectedReceiptException('Unexpected receipt', 0, null, $event->getFrame());
+                    throw new UnexpectedReceiptException('Unexpected receipt', 0, null, $event->getFrame());
                 }
             };
 
-            $this->addSystemListener(SystemEventType::FRAME_RECEIPT, $listener);
+            $this->subscribe(SystemEventType::FRAME_RECEIPT, $listener);
         }
 
-        $this->_writeFrame($messageFrame);
+        $this->_writeFrame($frame);
 
         if ($this->options['waitForReceipt']) {
             $this->startEventLoop();
         }
     }
 
+    public function begin($transactionId = null)
+    {
+        // @TODO wait for receipt if needed
+        $headers = [];
 
+        if ($transactionId) {
+            $headers['transaction'] = $transactionId;
+        }
+
+        $frame = Frame::createNew('BEGIN', $headers);
+        $this->_writeFrame($frame);
+    }
+
+    public function commit($transactionId = null)
+    {
+        // @TODO wait for receipt if needed
+        $headers = [];
+        
+        if ($transactionId) {
+            $headers['transaction'] = $transactionId;
+        }
+        
+        $frame = Frame::createNew('COMMIT', $headers);
+        $this->_writeFrame($frame);
+    }
+
+    public function abort($transactionId = null)
+    {
+        // @TODO wait for receipt if needed
+        $headers = [];
+
+        if ($transactionId) {
+            $headers['transaction'] = $transactionId;
+        }
+
+        $frame = Frame::createNew('ABORT', $headers);
+        $this->_writeFrame($frame);
+    }
+    /* ######### */
 
     protected function breakEventLoop()
     {
@@ -303,6 +318,6 @@ break event loop on exception,
     {
         $this->breakEventLoop();
 
-    	parent::disconnect();
+        parent::disconnect();
     }
 }
