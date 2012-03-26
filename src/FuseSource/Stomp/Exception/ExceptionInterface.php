@@ -1,5 +1,6 @@
 <?php
-namespace FuseSource\Stomp;
+
+namespace FuseSource\Stomp\Exception;
 /**
  *
  * Copyright 2005-2006 The Apache Software Foundation
@@ -17,18 +18,11 @@ namespace FuseSource\Stomp;
  * limitations under the License.
  */
 
-/* vim: set expandtab tabstop=3 shiftwidth=3: */
-
-
 /**
- * Basic text stomp message
  *
- * @package Stomp
+ * @author srohweder
  */
-class Message extends Frame
+interface ExceptionInterface
 {
-    public function __construct ($body, $headers = null)
-    {
-        $this->_init("SEND", $headers, $body);
-    }
+    //put your code here
 }
