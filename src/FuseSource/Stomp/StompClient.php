@@ -2,8 +2,10 @@
 
 namespace FuseSource\Stomp;
 
-use FuseSource\Stomp\Exception\StompException;
 use FuseSource\Stomp\Exception\ConnectionException;
+use FuseSource\Stomp\Exception\FrameException;
+use FuseSource\Stomp\Exception\ReceiptException;
+use FuseSource\Stomp\Exception\TransportException;
 use FuseSource\Stomp\Value\Uri;
 use FuseSource\Stomp\Value\Frame;
 use FuseSource\Stomp\Event\SystemEventType;
@@ -15,6 +17,7 @@ use Symfony\Component\EventDispatcher\Event;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use InvalidArgumentException;
+use BadMethodCallException;
 
 /**
  *
@@ -54,6 +57,7 @@ class StompClient
     protected $dispatcher;
     protected $logger;
 
+    protected $connected = false;
     protected $_attempts = 10;
     protected $_socket;
     protected $_sessionId;
@@ -157,11 +161,11 @@ class StompClient
                     $this->logger->debug('Got receipt', ['expected' => $expected, 'actual' => $actual]);
 
                     if ($expected !== $actual) {
-                        $this->dispatcher->dispatch(SystemEventType::FRAME_RECEIPT_MISMATCH_ERROR, new FrameEvent($this, $frame, $event->getFrame()));
+                        throw new ReceiptException(sprintf('Expected receipt "%s" but got "%s"', $expected, $actual));
                     }
                 };
 
-                $this->subscribe(SystemEventType::FRAME_RECEIPT, $listener);
+                $this->dispatcher->addListener(SystemEventType::FRAME_RECEIPT, $listener);
 
                 $this->startEventLoop();
             }
@@ -211,19 +215,14 @@ class StompClient
 
     public function subscribe($eventName, callable $listener)
     {
-        if (in_array($eventName, SystemEventType::getValidEventTypes(), true)) {
-            return $this->addSystemListener($eventName, $listener);
+        if (!$this->connected) {
+            throw new BadMethodCallException('Cant subscribe before connecting');
         }
 
-        if (preg_match('#^\/(queue|topic|temp-queue|temp-topic)\/#i', $eventName)) {
-            return $this->addDataListener($eventName, $listener);    
+        if (!preg_match('#^\/(queue|topic|temp-queue|temp-topic)\/#i', $eventName)) {
+            throw new InvalidArgumentException(sprintf('Event name must begin with one of /queue /topic /temp-queue /temp-topic, got "%s"', $eventName));     
         }
-        
-        throw new InvalidArgumentException('Given event name "%s" can neither be system listener nor data listener');
-    }
 
-    protected function addDataListener($eventName, callable $listener)
-    {
         if (!in_array($eventName, $this->subscribedEventNames, true)) {
             $this->subscribedEventNames[] = $eventName;
 
@@ -243,13 +242,6 @@ class StompClient
             $this->logger->debug('Subscribed', ['eventName' => $eventName]);   
         }
 
-        $this->dispatcher->addListener($eventName, $listener);
-
-        return $this;
-    }
-
-    protected function addSystemListener($eventName, callable $listener)
-    {
         $this->dispatcher->addListener($eventName, $listener);
 
         return $this;
@@ -302,7 +294,7 @@ class StompClient
         $this->logger->info('About to open socket and listen to socket connection');
         $this->openSocket();
 
-        $this->subscribe(SystemEventType::FRAME_ERROR, function(FrameEvent $event) {
+        $this->dispatcher->addListener(SystemEventType::FRAME_ERROR, function(FrameEvent $event) {
             $this->logger->err('Got frame error');
 
             $this->breakEventLoop();
@@ -310,7 +302,7 @@ class StompClient
             throw new FrameException('Frame error', 0, null, $event->getFrame());
         });
 
-        $this->subscribe(SystemEventType::TRANSPORT_ERROR, function(ErrorEvent $event) {
+        $this->dispatcher->addListener(SystemEventType::TRANSPORT_ERROR, function(ErrorEvent $event) {
             $this->logger->err('Got transport error');
 
             $this->breakEventLoop();
@@ -318,20 +310,14 @@ class StompClient
             throw new TransportException($event->getMessage());
         });
 
-        $this->subscribe(SystemEventType::FRAME_RECEIPT_MISMATCH_ERROR, function(FrameEvent $event) {
-            $this->logger->err('Got frame receipt mismatch');
-
-            $this->breakEventLoop();
-
-            throw new UnexpectedReceiptException(sprintf('Expected receipt "%s" but got "%s"', $event->getFrame()->getHeaders()['receipt'], $event->getReceiptFrame()->getHeaders()['receipt-id']));
-        });
-
-        $this->subscribe(SystemEventType::FRAME_CONNECTED, function(FrameEvent $event) {
+        $this->dispatcher->addListener(SystemEventType::FRAME_CONNECTED, function(FrameEvent $event) {
             $this->_sessionId = $event->getFrame()->getHeaders()['session'];
 
             $this->logger->info('Successfully connected to server', ['sessionId' => $this->_sessionId]);
 
             $this->breakEventLoop();
+
+            $this->connected = true;
         });
 
         $connectionFrame = Frame::createNew('CONNECT', ['login' => $this->options['username'], 'passcode' => $this->options['password']]);

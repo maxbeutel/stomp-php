@@ -30,6 +30,6 @@ use Exception;
  *
  * @package Stomp
  */
-class UnexpectedReceiptException extends FrameException
+class ReceiptException extends FrameException
 {
 }
