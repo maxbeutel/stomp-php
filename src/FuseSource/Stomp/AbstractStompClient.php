@@ -64,7 +64,8 @@ abstract class AbstractStompClient
             'password'       => null,
             'clientId'       => null,
             'prefetchSize'   => 1,
-            'connectTimeout' => 60,   
+            'connectTimeout' => 60,
+            'waitForReceipt' => false,
         ];
 
         $this->brokerUri = new Uri($uriString);

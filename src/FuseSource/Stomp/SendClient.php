@@ -5,7 +5,7 @@ namespace FuseSource\Stomp;
 use FuseSource\Stomp\Exception\StompException;
 use FuseSource\Stomp\Value\Uri;
 use FuseSource\Stomp\Value\Frame;
-use FuseSource\Stomp\Event\EventType;
+use FuseSource\Stomp\Event\SystemEventType;
 use FuseSource\Stomp\Event\FrameEvent;
 use FuseSource\Stomp\Event\ErrorEvent;
 use Symfony\Component\EventDispatcher\EventDispatcher;
@@ -35,13 +35,28 @@ use InvalidArgumentException;
 
 class SendClient extends AbstractStompClient
 {
-    public function send($destination, $msg, $properties = [], $waitForReceipt = false)
+    public function __construct($uriString, array $options)
+    {
+        parent::__construct($uriString, $options);
+
+        if ($this->options['waitForReceipt']) {
+            $this->receiveClient = new receiveClient($uriString, $options);
+        }
+    }
+
+    public function send($destination, $msg, $properties = [])
     {
         $headers = array_merge(['destination' => $destination], $properties);
         
-        $frame = Frame::createNew('SEND', $headers, $msg, $waitForReceipt);
+        $frame = Frame::createNew('SEND', $headers, $msg, $this->options['waitForReceipt']);
 
         $this->_writeFrame($frame);
+
+        $this->receiveClient->addSystemListener(SystemEventType::FRAME_RECEIPT, function() {
+            var_dump($argumen);
+        });
+        $this->receiveClient->listen();
+
         return $this->_waitForReceipt($frame);
     }
     /**

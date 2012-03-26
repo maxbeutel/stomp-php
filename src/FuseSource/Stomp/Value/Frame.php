@@ -84,6 +84,10 @@ class Frame
             return SystemEventType::FRAME_ERROR;
         }
 
+        if ($this->command === 'RECEIPT') {
+            return SystemEventType::FRAME_RECEIPT;
+        }
+
         return $this->headers['destination'];
     }
     

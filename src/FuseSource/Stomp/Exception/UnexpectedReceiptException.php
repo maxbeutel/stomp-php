@@ -1,6 +1,8 @@
 <?php
 
-namespace FuseSource\Stomp\Event;
+namespace FuseSource\Stomp\Exception;
+
+use Exception;
 
 /**
  *
@@ -20,24 +22,14 @@ namespace FuseSource\Stomp\Event;
  * limitations under the License.
  * 
  */
+/* vim: set expandtab tabstop=3 shiftwidth=3: */
 
-final class SystemEventType
+/**
+ * A Stomp Exception
+ *
+ *
+ * @package Stomp
+ */
+class UnexpectedReceiptException extends FrameException
 {
-	const FRAME_CONNECTED = 'connected';
-
-	const FRAME_ERROR = 'error';
-
-	const FRAME_RECEIPT = 'receipt';
-
-	const TRANSPORT_ERROR = '__transport/error';
-
-	public static function getValidEventTypes()
-	{
-		return [
-			self::FRAME_CONNECTED,
-			self::FRAME_ERROR,
-			self::TRANSPORT_ERROR,
-			self::FRAME_RECEIPT,
-		];
-	}
 }
