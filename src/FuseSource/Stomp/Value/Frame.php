@@ -68,7 +68,7 @@ class Frame
     public static function createNew($command = null, $headers = null, $body = null, $waitForReceipt = false)
     {
         if ($waitForReceipt) {
-            $headers['receipt'] = md5(microtime());
+            $headers['receipt'] = md5(microtime() . uniqid(mt_rand(), true));
         }
 
         return new static($command, (array) $headers, $body, $waitForReceipt);
