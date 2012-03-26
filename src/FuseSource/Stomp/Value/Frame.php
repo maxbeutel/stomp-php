@@ -77,11 +77,11 @@ class Frame
     public function getEventName()
     {
         if ($this->command === 'CONNECTED') {
-            return EventType::CONNECTED;
+            return EventType::FRAME_CONNECTED;
         }
         
         if ($this->command === 'ERROR') {
-            return EventType::ERROR;
+            return EventType::FRAME_ERROR;
         }
 
         return $this->headers['destination'];

@@ -4,7 +4,9 @@ namespace FuseSource\Stomp\Event;
 
 final class EventType
 {
-	const CONNECTED = '__system/connected';
+	const FRAME_CONNECTED = 'connected';
 
-	const ERROR = '__system/error';
+	const FRAME_ERROR = 'error';
+
+	const TRANSPORT_ERROR = '__transport/error';
 }
