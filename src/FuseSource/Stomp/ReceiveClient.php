@@ -2,7 +2,8 @@
 
 namespace FuseSource\Stomp;
 
-use FuseSource\Stomp\Exception\StompException;
+use FuseSource\Stomp\Exception\TransportException;
+use FuseSource\Stomp\Exception\FrameException;
 use FuseSource\Stomp\Value\Uri;
 use FuseSource\Stomp\Value\Frame;
 use FuseSource\Stomp\Event\EventType;
@@ -52,13 +53,19 @@ class ReceiveClient extends AbstractStompClient
                 $dataLength = strlen($data);
             } while ($dataLength < 2 || $end == false);
 
+            $this->logger->debug('Read callback triggered', array('data' => $data));
+
             $frame = Frame::unserializeFrom($data);
             $this->dispatcher->dispatch($frame->getEventName(), new FrameEvent($this, $frame));
         };
         
         $errorCallback = function($buf, $what, $arg) {
+        	$this->logger->debug('Error callback triggered', array('what' => $what, 'arg' => $arg));
+
             $this->dispatcher->dispatch(EventType::TRANSPORT_ERROR, new ErrorEvent($what));
         };
+
+        $this->logger->info('Starting event loop');
         
         $this->base = event_base_new();
         $eb = event_buffer_new($this->_socket, $readCallback, NULL, $errorCallback, $this->base);
@@ -130,7 +137,7 @@ class ReceiveClient extends AbstractStompClient
                 $frame = Frame::createNew('SUBSCRIBE', $headers);
                 $this->_writeFrame($frame);
 
-                var_dump('### REGISTER', $eventName);   
+                $this->logger->debug('Subscribed', array('eventName' => $eventName));   
             }
 
 	        $this->dispatcher->addListener($eventName, $listener);
@@ -139,7 +146,7 @@ class ReceiveClient extends AbstractStompClient
 
     public function ack(Frame $frame, $transactionId = null)
     {
-    	var_dump("### ACK");
+    	$this->logger->debug('Acking frame');
 
         $headers = $frame->getHeaders();
         
@@ -155,22 +162,27 @@ class ReceiveClient extends AbstractStompClient
 
    public function listen()
    {
+   		$this->logger->info('About to open socket and listen to socket connection');
+
    		$this->openSocket();
 
         $this->dispatcher->addListener(EventType::FRAME_CONNECTED, function(FrameEvent $event) {
-        	var_dump('### CONNECTED');
+        	$this->logger->info('Successfully connected to server');
+
             $this->_sessionId = $event->getFrame()->getHeaders()['session'];
             $this->addPreRegisteredListeners();
         });
 
         $this->dispatcher->addListener(EventType::FRAME_ERROR, function(FrameEvent $event) {
-            // @TODO log this
-            var_dump('### ERROR', $event->getFrame()->getBody());
+            $this->logger->info('Got frame error');
+
+            throw new FrameException('Frame error', 0, null, $event->getFrame());
         });
 
         $this->dispatcher->addListener(EventType::TRANSPORT_ERROR, function(ErrorEvent $event) {
-            // @TODO log this
-            var_dump('### ERROR', $event->getMessage());
+        	$this->logger->info('Got transport error');
+
+        	throw new TransportException($event->getMessage());
         });
 
         $connectionFrame = Frame::createNew('CONNECT', ['login' => $this->options['username'], 'passcode' => $this->options['password']]);
@@ -181,8 +193,6 @@ class ReceiveClient extends AbstractStompClient
 
     public function disconnect()
     {
-    	var_dump("### DISCONNECTING");
-
     	if (is_resource($this->base)) {
     		event_base_loopbreak($this->base);
     	}

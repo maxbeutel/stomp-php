@@ -12,6 +12,8 @@ use FuseSource\Stomp\Event\ErrorEvent;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\Event;
+use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
 use InvalidArgumentException;
 
 /**
@@ -59,6 +61,7 @@ abstract class AbstractStompClient
 
     protected $brokerUri;
     protected $options;
+    protected $logger;
 
     protected $_attempts = 10;
     protected $_socket;
@@ -83,6 +86,14 @@ abstract class AbstractStompClient
 
         $this->brokerUri = new Uri($uriString);
         $this->options = array_merge($defaultOptions, $options);
+        $this->logger = new Logger('StompClient');
+        $this->logger->pushHandler(new StreamHandler('php://stdout'));
+    }
+
+    public function setLogger(Logger $logger)
+    {
+        $this->logger = $logger;
+        return $this;
     }
 
     /**
@@ -95,7 +106,7 @@ abstract class AbstractStompClient
         $connected = false;
         $connectionAttempts = 0;
 
-        while (!$connected && $connectionAttempts < $this->_attempts) {            
+        while (!$connected && $connectionAttempts < $this->_attempts) { 
             $this->_socket = @fsockopen(
                 'tcp://' . $this->brokerUri->getHost(), 
                 $this->brokerUri->getPort(), 
@@ -105,6 +116,8 @@ abstract class AbstractStompClient
             );
             
             if (is_resource($this->_socket)) {
+                $this->logger->info(sprintf('Successfully connected to socket at attempt %d', $connectionAttempts));
+
                 return;
             }
             
@@ -127,9 +140,11 @@ abstract class AbstractStompClient
     {
         $data = (string) $frame;
 
+        $this->logger->debug('Writing frame data', array('data' => $data));
+
         $success = (bool) fwrite($this->_socket, $data, strlen($data));
 
-        var_dump("### WRITE SUCCESS", $success);
+        $this->logger->debug('Write frame success', array('success' => $success));
 
         if (!$success) {
             $this->openSocket();
@@ -139,6 +154,8 @@ abstract class AbstractStompClient
 
     public function disconnect()
     {
+        $this->logger->debug('Shutting down gracefully');
+
         $headers = [];
 
         if ($this->options['clientId']) {
