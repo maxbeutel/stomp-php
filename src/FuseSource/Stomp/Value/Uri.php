@@ -21,6 +21,7 @@ use InvalidArgumentException;
  * limitations under the License.
  * 
  */
+
 class Uri
 {
     private $uriParts;

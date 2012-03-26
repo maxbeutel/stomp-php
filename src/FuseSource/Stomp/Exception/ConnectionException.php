@@ -22,14 +22,7 @@ use Exception;
  * limitations under the License.
  * 
  */
-/* vim: set expandtab tabstop=3 shiftwidth=3: */
 
-/**
- * A Stomp Exception
- *
- *
- * @package Stomp
- */
 class ConnectionException extends Exception implements ExceptionInterface
 {
 }

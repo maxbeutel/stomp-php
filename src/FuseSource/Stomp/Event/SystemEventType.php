@@ -21,7 +21,7 @@ namespace FuseSource\Stomp\Event;
  * 
  */
 
-final class SystemEventType
+class SystemEventType
 {
 	const FRAME_CONNECTED = 'connected';
 
