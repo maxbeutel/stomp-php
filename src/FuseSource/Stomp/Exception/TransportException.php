@@ -29,31 +29,6 @@ use Exception;
  *
  * @package Stomp
  */
-class StompException extends Exception implements ExceptionInterface
+class TransportException extends Exception implements ExceptionInterface
 {
-    protected $_details;
-    
-    /**
-     * Constructor
-     *
-     * @param string $message Error message
-     * @param int $code Error code
-     * @param string $details Stomp server error details
-     */
-    public function __construct($message = null, $code = 0, $details = '')
-    {
-        $this->_details = $details;
-        
-        parent::__construct($message, $code);
-    }
-    
-    /**
-     * Stomp server error details
-     *
-     * @return string
-     */
-    public function getDetails()
-    {
-        return $this->_details;
-    }
 }
