@@ -6,7 +6,7 @@ use FuseSource\Stomp\Exception\TransportException;
 use FuseSource\Stomp\Exception\FrameException;
 use FuseSource\Stomp\Value\Uri;
 use FuseSource\Stomp\Value\Frame;
-use FuseSource\Stomp\Event\EventType;
+use FuseSource\Stomp\Event\SystemEventType;
 use FuseSource\Stomp\Event\FrameEvent;
 use FuseSource\Stomp\Event\ErrorEvent;
 use Symfony\Component\EventDispatcher\EventDispatcher;
@@ -81,7 +81,7 @@ class ReceiveClient extends AbstractStompClient
         $errorCallback = function($buf, $what, $arg) {
         	$this->logger->debug('Error callback triggered', array('what' => $what, 'arg' => $arg));
 
-            $this->dispatcher->dispatch(EventType::TRANSPORT_ERROR, new ErrorEvent($what));
+            $this->dispatcher->dispatch(SystemEventType::TRANSPORT_ERROR, new ErrorEvent($what));
         };
 
         $this->logger->info('Starting event loop');
@@ -95,10 +95,10 @@ class ReceiveClient extends AbstractStompClient
         event_base_loop($this->base);
     }
 
-    public function addListener($eventName, callable $listener)
+    public function addDataListener($eventName, callable $listener)
     {
         if (!preg_match('#^\/(queue|topic|temp-queue|temp-topic)\/#i', $eventName)) {
-            throw new InvalidArgumentException('Event Name for data listener must begin with one of /queue/ /topic/ /temp-queue/ /temp-topic/');
+            throw new InvalidArgumentException(sprintf('Event Name for data listener must begin with one of /queue/ /topic/ /temp-queue/ /temp-topic/ %s given', $eventName));
         }
 
         $this->dataListeners[] = [$eventName, $listener];
@@ -106,31 +106,35 @@ class ReceiveClient extends AbstractStompClient
         return $this;
     }
 
+    public function addSystemListener($eventName, callable $listener)
+    {
+        if (!in_array($eventName, SystemEventType::getValidEventTypes(), true)) {
+            throw new InvalidArgumentException(sprintf('Unknown system event %s given', $eventName));
+        }
+
+        $this->dispatcher->addListener($eventName, $listener);
+
+        return $this;
+    }
+
     public function unsubscribe($eventName, callable $listener)
     {
-        // @TODO implement this
+        $this->dispatcher->removeListener($eventName, $listener);
+
         if (preg_match('#^\/(queue|topic|temp-queue|temp-topic)\/#i', $eventName)) {
+            foreach ($this->dataListeners as $dataListener) {
+                list($theEventName, $theListener) = $dataListener;
 
-            $headers = array();
-            if (isset($properties)) {
-                foreach ($properties as $name => $value) {
-                    $headers[$name] = $value;
+                if ($theEventName !== $eventName || $dataListener !== $listener) {
+                    continue;
                 }
+
+                $frame = Frame::createNew('UNSUBSCRIBE', ['destination' => $eventName]);
+                $this->_writeFrame($frame);
             }
-            $headers['destination'] = $destination;
-            $frame = new Frame('UNSUBSCRIBE', $headers);
-            $this->_prepareReceipt($frame, $sync);
-            $this->_writeFrame($frame);
         }
 
-        $this->dispatcher->removeListener($eventName, $listener);        
-
-        if ($this->_waitForReceipt($frame, $sync) == true) {
-            unset($this->_subscriptions[$destination]);
-            return true;
-        } else {
-            return false;
-        }
+        return $this;
      }    
 
     protected function addPreRegisteredListeners()
@@ -185,20 +189,20 @@ class ReceiveClient extends AbstractStompClient
 
    		$this->openSocket();
 
-        $this->dispatcher->addListener(EventType::FRAME_CONNECTED, function(FrameEvent $event) {
+        $this->addSystemListener(SystemEventType::FRAME_CONNECTED, function(FrameEvent $event) {
         	$this->logger->info('Successfully connected to server');
 
             $this->_sessionId = $event->getFrame()->getHeaders()['session'];
             $this->addPreRegisteredListeners();
         });
 
-        $this->dispatcher->addListener(EventType::FRAME_ERROR, function(FrameEvent $event) {
+        $this->addSystemListener(SystemEventType::FRAME_ERROR, function(FrameEvent $event) {
             $this->logger->info('Got frame error');
 
             throw new FrameException('Frame error', 0, null, $event->getFrame());
         });
 
-        $this->dispatcher->addListener(EventType::TRANSPORT_ERROR, function(ErrorEvent $event) {
+        $this->addSystemListener(SystemEventType::TRANSPORT_ERROR, function(ErrorEvent $event) {
         	$this->logger->info('Got transport error');
 
         	throw new TransportException($event->getMessage());

@@ -21,11 +21,20 @@ namespace FuseSource\Stomp\Event;
  * 
  */
 
-final class EventType
+final class SystemEventType
 {
 	const FRAME_CONNECTED = 'connected';
 
 	const FRAME_ERROR = 'error';
 
 	const TRANSPORT_ERROR = '__transport/error';
+
+	public static function getValidEventTypes()
+	{
+		return [
+			self::FRAME_CONNECTED,
+			self::FRAME_ERROR,
+			self::TRANSPORT_ERROR,
+		];
+	}
 }
