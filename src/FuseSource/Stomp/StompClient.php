@@ -38,17 +38,12 @@ use BadMethodCallException;
  * 
  */
 
-/* vim: set expandtab tabstop=3 shiftwidth=3: */
-
 /**
  * A Stomp Connection
  *
- *
- * @package Stomp
  * @author Hiram Chirino <hiram@hiramchirino.com>
  * @author Dejan Bosanac <dejan@nighttale.net> 
  * @author Michael Caplan <mcaplan@labnet.net>
- * @version $Revision: 43 $
  */
 class StompClient
 {

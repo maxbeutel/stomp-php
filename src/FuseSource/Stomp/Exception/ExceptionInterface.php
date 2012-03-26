@@ -20,8 +20,8 @@ namespace FuseSource\Stomp\Exception;
  * limitations under the License.
  * 
  */
+
 /**
- *
  * @author srohweder
  */
 interface ExceptionInterface

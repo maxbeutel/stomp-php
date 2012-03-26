@@ -23,14 +23,7 @@ use FuseSource\Stomp\Value\Frame;
  * limitations under the License.
  * 
  */
-/* vim: set expandtab tabstop=3 shiftwidth=3: */
 
-/**
- * A Stomp Exception
- *
- *
- * @package Stomp
- */
 class FrameException extends Exception implements ExceptionInterface
 {
 	private $frame;

@@ -23,14 +23,6 @@ use Exception;
  * 
  */
 
-/* vim: set expandtab tabstop=3 shiftwidth=3: */
-
-/**
- * A Stomp Exception
- *
- *
- * @package Stomp
- */
 class TransportException extends Exception implements ExceptionInterface
 {
 }

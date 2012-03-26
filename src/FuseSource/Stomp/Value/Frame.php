@@ -22,13 +22,7 @@ use FuseSource\Stomp\Event\SystemEventType;
  * limitations under the License.
  * 
  */
-/* vim: set expandtab tabstop=3 shiftwidth=3: */
 
-/**
- * Stomp Frames are messages that are sent and received on a stomp connection.
- *
- * @package Stomp
- */
 class Frame
 {
     private $command;
