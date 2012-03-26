@@ -1,3 +1,9 @@
+This is a modified version of http://stomp.fusesource.org/documentation/php/ with refactored structure using libevent for receiving frames from STOMP server.
+
+
+
+
+
 A simple PHP [Stomp](http://stomp.github.com) Client
 
 Version choice
