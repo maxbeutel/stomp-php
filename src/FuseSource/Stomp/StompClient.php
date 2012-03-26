@@ -53,9 +53,9 @@ class StompClient
     protected $logger;
 
     protected $connected = false;
-    protected $_attempts = 10;
-    protected $_socket;
-    protected $_sessionId;
+    protected $attempts = 10;
+    protected $socket;
+    protected $sessionId;
 
     protected $base;
     protected $subscribedEventNames = [];    
@@ -94,7 +94,7 @@ class StompClient
 
     public function getSessionId()
     {
-        return $this->_sessionId;
+        return $this->sessionId;
     }    
 
     protected function openSocket()
@@ -102,10 +102,10 @@ class StompClient
         $connected = false;
         $connectionAttempts = 0;
 
-        while (!$connected && $connectionAttempts < $this->_attempts) {
+        while (!$connected && $connectionAttempts < $this->attempts) {
             $connectionErrorNumber = $connectionError = null;
 
-            $this->_socket = @fsockopen(
+            $this->socket = @fsockopen(
                 'tcp://' . $this->brokerUri->getHost(), 
                 $this->brokerUri->getPort(), 
                 $connectionErrorNumber, 
@@ -113,14 +113,14 @@ class StompClient
                 $this->options['connectTimeout']
             );
             
-            if (is_resource($this->_socket)) {
+            if (is_resource($this->socket)) {
                 $this->logger->info(sprintf('Successfully connected to socket at attempt %d', $connectionAttempts));
 
                 return;
             }
             
-            if ($this->_socket) {
-                @fclose($this->_socket);
+            if ($this->socket) {
+                @fclose($this->socket);
             }
 
             $connectionAttempts++;
@@ -135,7 +135,7 @@ class StompClient
 
         $this->logger->debug('Writing frame data', array('data' => $data));
 
-        $success = (bool) fwrite($this->_socket, $data, strlen($data));
+        $success = (bool) fwrite($this->socket, $data, strlen($data));
 
         $this->logger->debug('Frame written to socket', array('success' => $success));
 
@@ -200,7 +200,7 @@ class StompClient
         $this->logger->info('Starting event loop');
         
         $this->base = event_base_new();
-        $eb = event_buffer_new($this->_socket, $readCallback, NULL, $errorCallback, $this->base);
+        $eb = event_buffer_new($this->socket, $readCallback, NULL, $errorCallback, $this->base);
 
         event_buffer_base_set($eb, $this->base);
         event_buffer_enable($eb, EV_READ);
@@ -306,9 +306,9 @@ class StompClient
         });
 
         $this->dispatcher->addListener(SystemEventType::FRAME_CONNECTED, function(FrameEvent $event) {
-            $this->_sessionId = $event->getFrame()->getHeaders()['session'];
+            $this->sessionId = $event->getFrame()->getHeaders()['session'];
 
-            $this->logger->info('Successfully connected to server', ['sessionId' => $this->_sessionId]);
+            $this->logger->info('Successfully connected to server', ['sessionId' => $this->sessionId]);
 
             $this->breakEventLoop();
 
@@ -401,9 +401,9 @@ class StompClient
             $headers['client-id'] = $this->options['clientId'];
         }
 
-        if (is_resource($this->_socket)) {
+        if (is_resource($this->socket)) {
             $this->writeFrame(Frame::createNew('DISCONNECT', $headers));
-            fclose($this->_socket);
+            fclose($this->socket);
         }
     }
 
