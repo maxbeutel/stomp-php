@@ -2,6 +2,7 @@
 
 namespace FuseSource\Stomp\Event;
 
+use FuseSource\Stomp\StompClient;
 use Symfony\Component\EventDispatcher\Event;
 
 /**
@@ -25,11 +26,18 @@ use Symfony\Component\EventDispatcher\Event;
 
 class ErrorEvent extends Event
 {
+	private $connection;
 	private $message;
 
-	public function __construct($message)
+	public function __construct(StompClient $connection, $message)
 	{
+		$this->connection = $connection;
 		$this->message = $message;
+	}
+
+	public function getConnection()
+	{
+		return $this->connection;
 	}
 
 	public function getMessage()
