@@ -1,8 +1,9 @@
 <?php
 
-namespace FuseSource\Stomp\Message;
+namespace FuseSource\Stomp\Exception;
 
-use FuseSource\Stomp\Message;
+use Exception;
+
 /**
  *
  * Copyright 2005-2006 The Apache Software Foundation
@@ -23,24 +24,36 @@ use FuseSource\Stomp\Message;
 /* vim: set expandtab tabstop=3 shiftwidth=3: */
 
 /**
- * Message that contains a stream of uninterpreted bytes
+ * A Stomp Exception
+ *
  *
  * @package Stomp
  */
-class Bytes extends Message
+class StompException extends Exception implements ExceptionInterface
 {
+    protected $_details;
+    
     /**
      * Constructor
      *
-     * @param string $body
-     * @param array $headers
+     * @param string $message Error message
+     * @param int $code Error code
+     * @param string $details Stomp server error details
      */
-    function __construct ($body, $headers = null)
+    public function __construct($message = null, $code = 0, $details = '')
     {
-        $this->_init("SEND", $headers, $body);
-        if ($this->headers == null) {
-            $this->headers = array();
-        }
-        $this->headers['content-length'] = count(unpack("c*", $body));
+        $this->_details = $details;
+        
+        parent::__construct($message, $code);
+    }
+    
+    /**
+     * Stomp server error details
+     *
+     * @return string
+     */
+    public function getDetails()
+    {
+        return $this->_details;
     }
 }
