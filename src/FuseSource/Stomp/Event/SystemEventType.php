@@ -30,14 +30,4 @@ class SystemEventType
 	const FRAME_RECEIPT = 'receipt';
 
 	const TRANSPORT_ERROR = 'transportError';
-
-	public static function getValidEventTypes()
-	{
-		return [
-			self::FRAME_CONNECTED,
-			self::FRAME_ERROR,
-			self::TRANSPORT_ERROR,
-			self::FRAME_RECEIPT,
-		];
-	}
 }
