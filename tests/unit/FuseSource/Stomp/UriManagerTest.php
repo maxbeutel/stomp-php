@@ -23,59 +23,73 @@ use PHPUnit_Framework_TestCase;
  *
  */
 
+// dummy class extending regular UriManager in order to test some internal stuff
+// without the hassle of setting up a socket connection
 class DummyUriManager extends UriManager
 {
-	public function getOptions()
+	public function _getOptions()
 	{
 		return $this->options;
+	}
+
+	public function _getNextUri()
+	{
+		return $this->getNextUri();
 	}
 }
 
 class UriManagerTest extends PHPUnit_Framework_TestCase
 {
+	public function setUp()
+	{
+		$this->loggerMock = $this->getMockBuilder('Monolog\Logger')
+								 ->disableOriginalConstructor()
+								 ->getMock();
+	}
+
 	public function testDefaultOptions()
 	{
-		$manager = new DummyUriManager('failover://(tcp://localhost:61614,tcp://localhost:61613)', 3);
+		$manager = new DummyUriManager('failover://(tcp://localhost:61614,tcp://localhost:61613)', 3, 10, $this->loggerMock);
 
-		$this->assertFalse($manager->getOptions()['randomize']);
+		$this->assertFalse($manager->_getOptions()['randomize']);
 	}
 
 	public function testFailoverUris()
 	{
-		$manager = new DummyUriManager('failover://(tcp://localhost:61614,tcp://localhost:61613)', 3);
+		$manager = new DummyUriManager('failover://(tcp://localhost:61614,tcp://localhost:61613)', 3, 10, $this->loggerMock);
 
-		$uri = $manager->getNextUri();
+		$uri = $manager->_getNextUri();
 		$this->assertInstanceOf('FuseSource\Stomp\Value\Uri', $uri);
 		$this->assertSame('tcp://localhost:61614', (string) $uri);
 
-		$uri = $manager->getNextUri();
+		$uri = $manager->_getNextUri();
 		$this->assertInstanceOf('FuseSource\Stomp\Value\Uri', $uri);
 		$this->assertSame('tcp://localhost:61614', (string) $uri);
 
-		$uri = $manager->getNextUri();
+		$uri = $manager->_getNextUri();
 		$this->assertInstanceOf('FuseSource\Stomp\Value\Uri', $uri);
 		$this->assertSame('tcp://localhost:61614', (string) $uri);
 
 
-		$uri = $manager->getNextUri();
+		$uri = $manager->_getNextUri();
 		$this->assertInstanceOf('FuseSource\Stomp\Value\Uri', $uri);
 		$this->assertSame('tcp://localhost:61613', (string) $uri);
 
-		$uri = $manager->getNextUri();
+		$uri = $manager->_getNextUri();
 		$this->assertInstanceOf('FuseSource\Stomp\Value\Uri', $uri);
 		$this->assertSame('tcp://localhost:61613', (string) $uri);
 
-		$uri = $manager->getNextUri();
+		$uri = $manager->_getNextUri();
 		$this->assertInstanceOf('FuseSource\Stomp\Value\Uri', $uri);
 		$this->assertSame('tcp://localhost:61613', (string) $uri);
 
 		$this->setExpectedException('BadMethodCallException', 'No more URIs left to try');
-		$uri = $manager->getNextUri();
+		$uri = $manager->_getNextUri();
 	}
 
 	public function testRandomizedUris()
 	{
-		$manager = new DummyUriManager('failover://(tcp://localhost:61614,tcp://localhost:61613)?randomize=true', 3);
-		$this->assertTrue($manager->getOptions()['randomize']);
+		$manager = new DummyUriManager('failover://(tcp://localhost:61614,tcp://localhost:61613)?randomize=true', 3, 10, $this->loggerMock);
+		$this->assertTrue($manager->_getOptions()['randomize']);
 	}
 }

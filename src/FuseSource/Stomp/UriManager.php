@@ -4,8 +4,10 @@ namespace FuseSource\Stomp;
 
 use InvalidArgumentException;
 use BadMethodCallException;
+use FuseSource\Stomp\Exception\ConnectionException;
 use FuseSource\Stomp\Value\Uri;
 use FuseSource\Stomp\Helper\InputHelper;
+use Monolog\Logger;
 
 /**
  *
@@ -30,13 +32,15 @@ class UriManager
 {
 	protected $uris = [];
 	protected $retryAttemptsPerUri;
+	protected $connectionTimeout;
+	protected $logger;
 
 	protected $options = [];
 
 	protected $currentUriIndex = 0;
-	protected $currentRetries = 0;
+	protected $currentRetryAttempt = 0;
 
-	public function __construct($uriString, $retryAttemptsPerUri)
+	public function __construct($uriString, $retryAttemptsPerUri, $connectionTimeout, Logger $logger)
 	{
 		$defaultOptions = [
 			'randomize' => false,
@@ -49,7 +53,7 @@ class UriManager
 		$pattern = '|^(([a-zA-Z0-9]+)://)+\(*([a-zA-Z0-9\.:/i,-]+)\)*\??([a-zA-Z0-9=&]*)$|i';
 
 		if (!preg_match($pattern, $uriString, $regs)) {
-			throw new InvalidArgumentException('Cant parse URIs from URI string');
+			throw new InvalidArgumentException(sprintf('Cant parse URIs from URI string "%s"', $uriString));
 		}
 
 		parse_str($regs[4], $options);
@@ -58,7 +62,11 @@ class UriManager
         $singleUriStrings = explode(',', $regs[3]);
 
         foreach ($singleUriStrings as $singleUriString) {
-        	$this->uris[] = new Uri($singleUriString);
+        	try {
+        		$this->uris[] = new Uri($singleUriString);
+        	} catch (InvalidArgumentException $e) {
+        		throw new InvalidArgumentException(sprintf('Could not create URI from URI string "%s"', $singleUriString));
+        	}
         }
 
         if ($options['randomize']) {
@@ -67,13 +75,14 @@ class UriManager
 
         $this->retryAttemptsPerUri = $retryAttemptsPerUri;
         $this->options = array_merge($defaultOptions, $options);
+        $this->logger = $logger;
 	}
 
-	public function getNextUri()
+	protected function getNextUri()
 	{
-		if ($this->currentRetries === $this->retryAttemptsPerUri) {
+		if ($this->currentRetryAttempt === $this->retryAttemptsPerUri) {
 			$this->currentUriIndex++;
-			$this->currentRetries = 0;
+			$this->currentRetryAttempt = 0;
 		}
 
 		if (!isset($this->uris[$this->currentUriIndex])) {
@@ -82,18 +91,45 @@ class UriManager
 
 		$uri = $this->uris[$this->currentUriIndex];
 
-		$this->currentRetries++;
+		$this->currentRetryAttempt++;
 
 		return $uri;
 	}
 
-	public function getCurrentRetry()
+	protected function reset()
 	{
-		return $this->currentRetries;
+		$this->currentUriIndex = $this->currentRetryAttempt = 0;
 	}
 
-	public function reset()
+	public function openSocketToUri()
 	{
-		$this->currentUriIndex = $this->currentRetries = 0;
+		$this->reset();
+
+		try {
+			while ($uri = $this->getNextUri()) {
+				$connectionErrorNumber = $connectionError = null;
+
+				$socket = @fsockopen($uri->getHostWithScheme(), $uri->getPort(), $connectionErrorNumber, $connectionError, $this->options['connectTimeout']);
+
+				if (is_resource($socket)) {
+					$this->logger->info(sprintf('Successfully connected to broker "%s" at attempt %d', $uri, $this->uriManager->getCurrentRetryAttempt()));
+					return $socket;
+				}
+
+				$this->logger->info(sprintf('Failed to connect to broker "%s" at attempt %d', $uri, $this->uriManager->getCurrentRetryAttempt()));
+
+				if ($connectionErrorNumber || $connectionError) {
+					$this->logger->warn(sprintf('Got error no %d with message "%s"', $connectionErrorNumber, $connectionError));
+				}
+
+				if ($socket) {
+					@fclose($socket);
+				}
+			}
+		} catch (BadMethodCallException $e) {
+			throw new ConnectionException(sprintf('Could not connect to any broker', $connectionAttempts), $e->getCode(), $e);
+		} catch (InvalidArgumentException $e) {
+			throw new ConnectionException('Attempted to use invalid URI', $e->getCode(), $e);
+		}
 	}
 }

@@ -2,7 +2,6 @@
 
 namespace FuseSource\Stomp;
 
-use FuseSource\Stomp\Exception\ConnectionException;
 use FuseSource\Stomp\Exception\FrameException;
 use FuseSource\Stomp\Exception\ReceiptException;
 use FuseSource\Stomp\Exception\TransportException;
@@ -47,8 +46,6 @@ use BadMethodCallException;
  */
 class StompClient
 {
-	protected $brokerUri;
-
 	protected $uriManager;
 	protected $options;
 	protected $dispatcher;
@@ -64,25 +61,25 @@ class StompClient
 	public function __construct($uriString, array $options = [])
 	{
 		$defaultOptions = [
-			'username'       => null,
-			'password'       => null,
-			'clientId'       => null,
-			'prefetchSize'   => 1,
-			'connectTimeout' => 60,
-			'waitForReceipt' => false,
-			'readTimeout'	 => 10,
-			'writeTimeout'	 => 10,
+			'username'       		=> null,
+			'password'       		=> null,
+			'clientId'       		=> null,
+			'prefetchSize'   		=> 1,
+			'connectTimeout'		=> 60,
+			'waitForReceipt' 		=> false,
+			'readTimeout'			=> 10,
+			'writeTimeout'	 		=> 10,
+			'retryAttemptsPerUri' 	=> 10,
 		];
 
-		$this->brokerUri = new Uri($uriString);
-
-		$this->uriManager = new UriManager($uriString, 10);
 		$this->options = array_merge($defaultOptions, $options);
 
 		$this->dispatcher = new EventDispatcher();
 
 		$this->logger = new Logger('StompClient');
 		$this->logger->pushHandler(new StreamHandler('php://stdout'));
+
+		$this->uriManager = new UriManager($uriString, $this->options['retryAttemptsPerUri'], $this->options['connectTimeout'], $this->logger);
 	}
 
 	public function setLogger(Logger $logger)
@@ -104,35 +101,7 @@ class StompClient
 
 	protected function openSocket()
 	{
-		$connected = false;
-
-		try {
-			while (!$connected && ($uri = $this->uriManager->getNextUri())) {
-				$connectionErrorNumber = $connectionError = null;
-
-				$this->socket = @fsockopen($uri->getHostWithScheme(), $uri->getPort(), $connectionErrorNumber, $connectionError, $this->options['connectTimeout']);
-
-				if (is_resource($this->socket)) {
-					$this->logger->info(sprintf('Successfully connected to broker "%s" at attempt %d', $uri, $this->uriManager->getCurrentRetry()));
-					return;
-				}
-
-				$this->logger->info(sprintf('Failed to connect to broker "%s" at attempt %d', $uri, $this->uriManager->getCurrentRetry()));
-
-				if ($connectionErrorNumber || $connectionError) {
-					$this->logger->warn(sprintf('Got error no %d with message "%s"', $connectionErrorNumber, $connectionError));
-				}
-
-				if ($this->socket) {
-					@fclose($this->socket);
-				}
-			}
-		} catch (BadMethodCallException $e) {
-			throw new ConnectionException(sprintf('Could not connect to any broker', $connectionAttempts), $e->getCode(), $e);
-		}
-
-
-		// @TODO catch InvalidArgumentExceptions or so either here or in Manager and let them bubble up as ConnectionException???
+		$this->socket = $this->uriManager->openSocketToUri();
 	}
 
 	protected function writeFrame(Frame $frame)

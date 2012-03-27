@@ -36,13 +36,13 @@ class UriTest extends PHPUnit_Framework_TestCase
 		$uri = new Uri('tcp://localhost:1234');
 		$uri = new Uri('ssl://localhost:1234');
 
-		$this->setExpectedException('InvalidArgumentException', 'Only tcp or ssl are supported as scheme for now');
+		$this->setExpectedException('InvalidArgumentException', 'Scheme must be either tcp or ssl for now');
 		$uri = new Uri('udp://localhost:1234');
 	}
 
 	public function testMissingScheme()
 	{
-		$this->setExpectedException('InvalidArgumentException', 'Only tcp or ssl are supported as scheme for now');
+		$this->setExpectedException('InvalidArgumentException', 'Scheme must be either tcp or ssl for now');
 		$uri = new Uri('localhost:1234');
 	}
 

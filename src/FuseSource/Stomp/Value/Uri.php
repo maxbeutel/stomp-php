@@ -43,14 +43,14 @@ class Uri
 	private function assertValidUri($uriParts)
 	{
 		if (!$uriParts) {
-			throw new InvalidArgumentException('Invalid broker URI');
+			throw new InvalidArgumentException('Invalid broker URI format');
 		}
 
 		if (!isset($uriParts['scheme']) || !in_array($uriParts['scheme'], ['tcp', 'ssl'], true)) {
-			throw new InvalidArgumentException('Only tcp or ssl are supported as scheme for now');
+			throw new InvalidArgumentException('Scheme must be either tcp or ssl for now');
 		}
 
-		if (!isset($uriParts['port']) || !is_numeric($uriParts['port'])) {
+		if (!isset($uriParts['port'])) {
 			throw new InvalidArgumentException('No valid port found');
 		}
 
