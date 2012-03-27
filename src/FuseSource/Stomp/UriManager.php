@@ -46,21 +46,27 @@ class UriManager
 			'randomize' => false,
 		];
 
-		// taken from FuseSource StompClient
-		// @author Hiram Chirino <hiram@hiramchirino.com>
-		// @author Dejan Bosanac <dejan@nighttale.net>
-		// @author Michael Caplan <mcaplan@labnet.net>
-		$pattern = '|^(([a-zA-Z0-9]+)://)+\(*([a-zA-Z0-9\.:/i,-]+)\)*\??([a-zA-Z0-9=&]*)$|i';
-
-		if (!preg_match($pattern, $uriString, $regs)) {
-			throw new InvalidArgumentException(sprintf('Cant parse URIs from URI string "%s"', $uriString));
-		}
-
-		parse_str($regs[4], $options);
+		// create options from key/value string
+		parse_str(substr($uriString, strpos($uriString, '?') + 1), $options);
         $options = InputHelper::convertStringOptions($options);
 
-        $singleUriStrings = explode(',', $regs[3]);
+        $singleUriStrings = [];
 
+        // parse URIs
+		if (stripos($uriString, 'failover://') === 0) {
+			if (preg_match('#\((.*)\)#i', $uriString, $matches)) {
+				$singleUriStrings = explode(',', $matches[1]);
+			}
+		} else {
+			list($singleUriStrings) = explode('?', $uriString);
+			$singleUriStrings = (array) $singleUriStrings;
+		}
+
+		if (count($singleUriStrings) === 0) {
+			throw new InvalidArgumentException(sprintf('No URIs found in "%s"', $uriString));
+		}
+
+		// create URI value objects
         foreach ($singleUriStrings as $singleUriString) {
         	try {
         		$this->uris[] = new Uri($singleUriString);
@@ -69,13 +75,14 @@ class UriManager
         	}
         }
 
-        if ($options['randomize']) {
-        	shuffle($this->uris);
-        }
-
         $this->retryAttemptsPerUri = $retryAttemptsPerUri;
+        $this->connectionTimeout = $connectionTimeout;
         $this->options = array_merge($defaultOptions, $options);
         $this->logger = $logger;
+
+        if ($this->options['randomize']) {
+        	shuffle($this->uris);
+        }
 	}
 
 	protected function getNextUri()
@@ -101,7 +108,7 @@ class UriManager
 		$this->currentUriIndex = $this->currentRetryAttempt = 0;
 	}
 
-	public function openSocketToUri()
+	public function openSocketToBroker()
 	{
 		$this->reset();
 
@@ -109,7 +116,7 @@ class UriManager
 			while ($uri = $this->getNextUri()) {
 				$connectionErrorNumber = $connectionError = null;
 
-				$socket = @fsockopen($uri->getHostWithScheme(), $uri->getPort(), $connectionErrorNumber, $connectionError, $this->options['connectTimeout']);
+				$socket = @fsockopen($uri->getHostWithScheme(), $uri->getPort(), $connectionErrorNumber, $connectionError, $this->connectionTimeout);
 
 				if (is_resource($socket)) {
 					$this->logger->info(sprintf('Successfully connected to broker "%s" at attempt %d', $uri, $this->uriManager->getCurrentRetryAttempt()));

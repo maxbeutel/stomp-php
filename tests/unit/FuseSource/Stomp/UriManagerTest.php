@@ -47,6 +47,28 @@ class UriManagerTest extends PHPUnit_Framework_TestCase
 								 ->getMock();
 	}
 
+	public function testValidUriStrings()
+	{
+		$manager = new DummyUriManager('failover://(tcp://localhost:61614,tcp://localhost:61613)', 3, 10, $this->loggerMock);
+		$manager = new DummyUriManager('failover://(tcp://localhost:61614,tcp://localhost:61613)?foo=bar', 3, 10, $this->loggerMock);
+		$manager = new DummyUriManager('tcp://localhost:61614', 3, 10, $this->loggerMock);
+		$manager = new DummyUriManager('ssl://localhost:61614', 3, 10, $this->loggerMock);
+	}
+
+	public function testInvalidUriString_1()
+	{
+		$this->setExpectedException('InvalidArgumentException', 'Could not create URI from URI string "failover:/(tcp://localhost:61614,tcp://localhost:61613)"');
+
+		$manager = new DummyUriManager('failover:/(tcp://localhost:61614,tcp://localhost:61613)', 3, 10, $this->loggerMock);
+	}
+
+	public function testInvalidUriString_2()
+	{
+		$this->setExpectedException('InvalidArgumentException', 'Could not create URI from URI string "tcp://localhost:61614 tcp://localhost:61613"');
+
+		$manager = new DummyUriManager('failover://(tcp://localhost:61614 tcp://localhost:61613)', 3, 10, $this->loggerMock);
+	}
+
 	public function testDefaultOptions()
 	{
 		$manager = new DummyUriManager('failover://(tcp://localhost:61614,tcp://localhost:61613)', 3, 10, $this->loggerMock);
