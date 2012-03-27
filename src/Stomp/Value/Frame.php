@@ -39,7 +39,7 @@ class Frame
 	{
 		$this->command = $command;
 		$this->headers = $headers;
-		$this->body = $body;
+		$this->body = trim($body);
 		$this->waitForReceipt = $waitForReceipt;
 	}
 

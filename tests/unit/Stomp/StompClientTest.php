@@ -53,7 +53,7 @@ class StompClientTest extends PHPUnit_Framework_TestCase
 								 ->getMock();
 	}
 
-	public function testCantSubscribeIfNotConnected()
+	public function testSubscribeNotConnected()
 	{
 		$this->setExpectedException('BadMethodCallException', 'Cant subscribe before connecting');
 

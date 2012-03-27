@@ -46,6 +46,7 @@ class FailoverTest extends PHPUnit_Framework_TestCase
 
 	/**
 	 * @group integration
+	 * @large
 	 */
 	public function testFailoverMultipleUris()
 	{
@@ -61,6 +62,7 @@ class FailoverTest extends PHPUnit_Framework_TestCase
 
 	/**
 	 * @group integration
+	 * @large
 	 */
 	public function testFailoverMultipleUrisRandomized()
 	{
@@ -76,6 +78,7 @@ class FailoverTest extends PHPUnit_Framework_TestCase
 
 	/**
 	 * @group integration
+	 * @large
 	 */
 	public function testFailoverSyntaxSingleUriValid()
 	{

@@ -230,10 +230,8 @@ class StompClient
 		$this->dispatcher->removeListener($eventName, $listener);
 
 		if (preg_match('#^\/(queue|topic|temp-queue|temp-topic)\/#i', $eventName)) {
-			foreach ($this->dataListeners as $dataListener) {
-				list($theEventName, $theListener) = $dataListener;
-
-				if ($theEventName !== $eventName || ($listener && $dataListener !== $listener)) {
+			foreach ($this->subscribedEventNames as $theEventName) {
+				if ($theEventName !== $eventName) {
 					continue;
 				}
 

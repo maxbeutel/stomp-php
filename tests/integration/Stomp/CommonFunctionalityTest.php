@@ -46,6 +46,7 @@ class CommonFunctionalityTest extends PHPUnit_Framework_TestCase
 
 	/**
 	 * @group integration
+	 * @large
 	 */
 	public function testBasicConnectDisconnect()
 	{
@@ -61,6 +62,7 @@ class CommonFunctionalityTest extends PHPUnit_Framework_TestCase
 
 	/**
 	 * @group integration
+	 * @large
 	 */
 	public function testBasicConnectDisconnectWithCredentials()
 	{
@@ -76,6 +78,7 @@ class CommonFunctionalityTest extends PHPUnit_Framework_TestCase
 
 	/**
 	 * @group integration
+	 * @large
 	 */
 	public function testMultipleDisconnectsDontSendMultipleCommands()
 	{
@@ -92,6 +95,7 @@ class CommonFunctionalityTest extends PHPUnit_Framework_TestCase
 
 	/**
 	 * @group integration
+	 * @large
 	 */
 	public function testConnectedClientHasSessionId()
 	{
@@ -101,4 +105,61 @@ class CommonFunctionalityTest extends PHPUnit_Framework_TestCase
 		$this->assertNotNull($client->getSessionId());
 		$client->disconnect();
 	}
+
+	/**
+	 * @group integration
+	 * @large
+	 */
+	public function testSend()
+	{
+		$client = new StompClient('tcp://localhost:61613', ['loggerInstance' => $this->loggerMock]);
+		$client->connect();
+
+		$client->send('/queue/test', 'message 1');
+		$client->send('/queue/test', 'message 2');
+
+		$output = $this->getStompServerOutput();
+
+		$this->assertContains('SEND {"destination":"/queue/test","content-length":9} "message 1"', $output);
+		$this->assertContains('SEND {"destination":"/queue/test","content-length":9} "message 2"', $output);
+
+		$client->disconnect();
+	}
+
+	/**
+	 * @group integration
+	 * @large
+	 */
+	public function testSubscribe()
+	{
+		$client = new StompClient('tcp://localhost:61613', ['loggerInstance' => $this->loggerMock]);
+		$client->connect();
+
+		$client->subscribe('/queue/test', function() {});
+
+		$output = $this->getStompServerOutput();
+
+		$this->assertContains('SUBSCRIBE {"ack":"client","destination":"/queue/test","activemq.prefetchSize":"1","content-length":0}', $output);
+
+		$client->disconnect();
+	}
+
+	/**
+	 * @group integration
+	 * @large
+	 */
+	 public function testUnsubscribe()
+	 {
+		$client = new StompClient('tcp://localhost:61613', ['loggerInstance' => $this->loggerMock]);
+		$client->connect();
+
+		$client->subscribe('/queue/test', function() {});
+		$client->unsubscribe('/queue/test', function() {});
+
+		$output = $this->getStompServerOutput();
+
+		$this->assertContains('UNSUBSCRIBE {"destination":"/queue/test","content-length":0}', $output);
+
+		$client->disconnect();
+	 }
 }
