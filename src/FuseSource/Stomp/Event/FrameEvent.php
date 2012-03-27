@@ -1,15 +1,8 @@
 <?php
 
-namespace FuseSource\Stomp\Event;
-
-use FuseSource\Stomp\StompClient;
-use FuseSource\Stomp\Value\Frame;
-use Symfony\Component\EventDispatcher\Event;
-
 /**
  *
- * Copyright 2005-2006 The Apache Software Foundation
- * Source Code modified 2012 by Max Beutel <me@maxbeutel.de>
+ * Copyright 2012 Max Beutel <me@maxbeutel.de>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +17,12 @@ use Symfony\Component\EventDispatcher\Event;
  * limitations under the License.
  *
  */
+
+namespace FuseSource\Stomp\Event;
+
+use FuseSource\Stomp\StompClient;
+use FuseSource\Stomp\Value\Frame;
+use Symfony\Component\EventDispatcher\Event;
 
 class FrameEvent extends Event
 {
