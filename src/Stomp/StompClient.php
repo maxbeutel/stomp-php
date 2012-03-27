@@ -112,35 +112,28 @@ class StompClient
 
 		$this->logger->debug('Writing frame data', array('data' => $data));
 
-		$success = $this->socketConnection->write($data);
+		$this->socketConnection->write($data);
 
-		$this->logger->debug('Frame written to socket', array('success' => $success));
+		if ($frame->waitForReceipt()) {
+			$this->logger->debug('Waiting for frame receipt');
 
-		if (!$success) {
-			$this->socketConnection->open();
-			$this->writeFrame($frame);
-		} else {
-			if ($frame->waitForReceipt()) {
-				$this->logger->debug('Waiting for frame receipt');
+			$listener = function(FrameEvent $event) use($frame, &$listener) {
+				$this->unsubscribe(SystemEventType::FRAME_RECEIPT, $listener);
+				$this->breakEventLoop();
 
-				$listener = function(FrameEvent $event) use($frame, &$listener) {
-					$this->unsubscribe(SystemEventType::FRAME_RECEIPT, $listener);
-					$this->breakEventLoop();
+				$expected = $frame->getHeaders()['receipt'];
+				$actual = $event->getFrame()->getHeaders()['receipt-id'];
 
-					$expected = $frame->getHeaders()['receipt'];
-					$actual = $event->getFrame()->getHeaders()['receipt-id'];
+				$this->logger->debug('Got receipt', ['expected' => $expected, 'actual' => $actual]);
 
-					$this->logger->debug('Got receipt', ['expected' => $expected, 'actual' => $actual]);
+				if ($expected !== $actual) {
+					throw new ReceiptException(sprintf('Expected receipt "%s" but got "%s"', $expected, $actual));
+				}
+			};
 
-					if ($expected !== $actual) {
-						throw new ReceiptException(sprintf('Expected receipt "%s" but got "%s"', $expected, $actual));
-					}
-				};
+			$this->dispatcher->addListener(SystemEventType::FRAME_RECEIPT, $listener);
 
-				$this->dispatcher->addListener(SystemEventType::FRAME_RECEIPT, $listener);
-
-				$this->startEventLoop();
-			}
+			$this->startEventLoop();
 		}
 	}
 
@@ -175,7 +168,14 @@ class StompClient
 		$errorCallback = function($buf, $code, $resource) {
 			$this->logger->debug('Error callback triggered', ['code' => $code]);
 
-			$this->dispatcher->dispatch(SystemEventType::TRANSPORT_ERROR, new ErrorEvent(sprintf('Libevent error code %d', $code)));
+			// EOF is not that unexpected, so dont throw an exception
+			if ($code & EVBUFFER_EOF) {
+				$this->logger->warn('Got EOF, shutting down');
+
+				$this->disconnect();
+			} else {
+				$this->dispatcher->dispatch(SystemEventType::TRANSPORT_ERROR, new ErrorEvent(sprintf('Libevent error code %d', $code)));
+			}
 		};
 
 		$this->logger->info('Starting event loop');

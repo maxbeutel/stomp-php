@@ -108,10 +108,8 @@ class SocketConnection
 		$this->currentUriIndex = $this->currentRetryAttempt = 0;
 	}
 
-	public function open()
+	protected function connect()
 	{
-		$this->reset();
-
 		try {
 			while ($uri = $this->getNextUri()) {
 				$connectionErrorNumber = $connectionError = null;
@@ -138,9 +136,23 @@ class SocketConnection
 		}
 	}
 
+	public function open()
+	{
+		$this->reset();
+
+		$this->connect();
+	}
+
 	public function write($string)
 	{
-		return (bool) @fwrite($this->socket, $string, strlen($string));
+		$success = (bool) @fwrite($this->socket, $string, strlen($string));
+
+		if (!$success) {
+			$this->logger->warn('Could not write string to socket, trying to reconnect', ['string' => $string]);
+
+			$this->open();
+			$this->write($string);
+		}
 	}
 
 	public function getRawSocket()

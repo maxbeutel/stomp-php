@@ -25,20 +25,19 @@ trait StompServerTrait
 	private static $NO_OUTPUT = '[no output]';
 
 	private $stompServerProcess;
-	private $currentOutputFile;
+	private $currentServerOutputFile;
 
-	// @TODO add node in travis.yml, update TODO :), write some tests :(
 	private function startStompServer()
 	{
 		$this->stopStompServer();
 
-		$this->currentOutputFile = STOMP_TEST_DIR . '/integration/fixtures/output-files/' . microtime(true) . '-' . md5(uniqid(mt_rand(), true)) . '.txt';
+		$this->currentServerOutputFile = STOMP_TEST_DIR . '/integration/fixtures/output-files/' . microtime(true) . '-' . md5(uniqid(mt_rand(), true)) . '.server';
 
 		$cmd = 'node ' . STOMP_TEST_DIR . '/../vendor/maxbeutel/node-stomp-server/app.js';
 
 		$descriptorspec = [
 			0 => ['pipe', 'r'],
-			1 => ['file', $this->currentOutputFile, 'w'],
+			1 => ['file', $this->currentServerOutputFile, 'w'],
 			2 => ['pipe', 'w'],
 		];
 
@@ -54,24 +53,24 @@ trait StompServerTrait
 			proc_terminate($this->stompServerProcess);
 		}
 
-		foreach (glob(STOMP_TEST_DIR . '/integration/fixtures/output-files/*.txt') as $outputFile) {
+		foreach (glob(STOMP_TEST_DIR . '/integration/fixtures/output-files/*.server') as $outputFile) {
 			unlink($outputFile);
 		}
 
 		exec('ps -ef | grep "/node-stomp-server/" | awk \'{print $2}\' | xargs -r kill 2>&1');
 
-		$this->stompServerProcess = $this->currentOutputFile = null;
+		$this->stompServerProcess = $this->currentServerOutputFile = null;
 	}
 
 	private function getStompServerOutput()
 	{
-		if (!is_file($this->currentOutputFile)) {
+		if (!is_file($this->currentServerOutputFile)) {
 			return self::$NO_OUTPUT;
 		}
 
 		// hack: not all data might have been written to disk yet
 		sleep(1);
 
-		return file_get_contents($this->currentOutputFile);
+		return file_get_contents($this->currentServerOutputFile);
 	}
 }

@@ -34,6 +34,7 @@ class ProduceConsumeTest extends PHPUnit_Framework_TestCase
 	public function setUp()
 	{
 		$this->startStompServer();
+		$this->startStompConsumer();
 
 		$this->loggerMock = $this->getMockBuilder('Monolog\Logger')
 								 ->disableOriginalConstructor()
@@ -42,25 +43,72 @@ class ProduceConsumeTest extends PHPUnit_Framework_TestCase
 
 	public function tearDown()
 	{
+		$this->stopStompConsumer();
 		$this->stopStompServer();
 	}
 
+	private $stompConsumerProcess;
+	private $currentConsumerOutputFile;
+
 	private function startStompConsumer()
 	{
+		$this->stopStompConsumer();
 
+		$this->currentConsumerOutputFile = STOMP_TEST_DIR . '/integration/fixtures/output-files/' . microtime(true) . '-' . md5(uniqid(mt_rand(), true)) . '.consumer';
+
+		$cmd = 'php ' . STOMP_TEST_DIR . '/../examples/01_simple/consumer.php';
+
+		$descriptorspec = [
+			0 => ['pipe', 'r'],
+			1 => ['file', $this->currentConsumerOutputFile, 'w'],
+			2 => ['pipe', 'w'],
+		];
+
+		$this->stompConsumerProcess = proc_open($cmd, $descriptorspec, $pipes, sys_get_temp_dir());
+
+		sleep(1);
 	}
 
 	private function stopStompConsumer()
 	{
+		if (is_resource($this->stompConsumerProcess)) {
+		#	proc_close($this->stompConsumerProcess);
+		}
 
+		foreach (glob(STOMP_TEST_DIR . '/integration/fixtures/output-files/*.consumer') as $outputFile) {
+			unlink($outputFile);
+		}
+
+		exec('ps -ef | grep "/consumer.php" | awk \'{print $2}\' | xargs -r kill 2>&1');
+
+		$this->stompConsumerProcess = $this->currentConsumerOutputFile = null;
+	}
+
+	private function getStompConsumerOutput()
+	{
+		if (!is_file($this->currentConsumerOutputFile)) {
+			return self::$NO_OUTPUT;
+		}
+
+		// hack: not all data might have been written to disk yet
+		sleep(1);
+
+		return file_get_contents($this->currentConsumerOutputFile);
 	}
 
 	public function testSomething()
 	{
-		$this->assertTrue(false);
-		#$this->startBackgroundStompListener();
-		#$this->assertTrue(bla(1));
-		#$this->assertFalse(bla(2));
+$client = new StompClient('tcp://localhost:61613');
+$client->connect();
+
+for ($i = 0; $i < 10; $i++) {
+	$client->send('/queue/simple-example', 'frob');
+}
+
+$client->disconnect();
+
+var_dump($this->getStompConsumerOutput());
+
 	}
 
 	/**
