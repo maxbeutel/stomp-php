@@ -3,7 +3,7 @@ language: php
 php:
   - 5.4
 
-script: phpunit tests/unit
+script: "phpunit tests/unit"
 
 before_script:
   - wget http://getcomposer.org/composer.phar
