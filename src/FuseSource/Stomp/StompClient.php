@@ -48,12 +48,13 @@ use BadMethodCallException;
 class StompClient
 {
 	protected $brokerUri;
+
+	protected $uriManager;
 	protected $options;
 	protected $dispatcher;
 	protected $logger;
 
 	protected $connected = false;
-	protected $attempts = 10;
 	protected $socket;
 	protected $sessionId;
 
@@ -74,6 +75,8 @@ class StompClient
 		];
 
 		$this->brokerUri = new Uri($uriString);
+
+		$this->uriManager = new UriManager($uriString, 10);
 		$this->options = array_merge($defaultOptions, $options);
 
 		$this->dispatcher = new EventDispatcher();
@@ -102,33 +105,34 @@ class StompClient
 	protected function openSocket()
 	{
 		$connected = false;
-		$connectionAttempts = 0;
 
-		while (!$connected && $connectionAttempts < $this->attempts) {
-			$connectionErrorNumber = $connectionError = null;
+		try {
+			while (!$connected && ($uri = $this->uriManager->getNextUri())) {
+				$connectionErrorNumber = $connectionError = null;
 
-			$this->socket = @fsockopen(
-				'tcp://' . $this->brokerUri->getHost(),
-				$this->brokerUri->getPort(),
-				$connectionErrorNumber,
-				$connectionError,
-				$this->options['connectTimeout']
-				);
+				$this->socket = @fsockopen($uri->getHostWithScheme(), $uri->getPort(), $connectionErrorNumber, $connectionError, $this->options['connectTimeout']);
 
-			if (is_resource($this->socket)) {
-				$this->logger->info(sprintf('Successfully connected to socket at attempt %d', $connectionAttempts));
+				if (is_resource($this->socket)) {
+					$this->logger->info(sprintf('Successfully connected to broker "%s" at attempt %d', $uri, $this->uriManager->getCurrentRetry()));
+					return;
+				}
 
-				return;
+				$this->logger->info(sprintf('Failed to connect to broker "%s" at attempt %d', $uri, $this->uriManager->getCurrentRetry()));
+
+				if ($connectionErrorNumber || $connectionError) {
+					$this->logger->warn(sprintf('Got error no %d with message "%s"', $connectionErrorNumber, $connectionError));
+				}
+
+				if ($this->socket) {
+					@fclose($this->socket);
+				}
 			}
-
-			if ($this->socket) {
-				@fclose($this->socket);
-			}
-
-			$connectionAttempts++;
+		} catch (BadMethodCallException $e) {
+			throw new ConnectionException(sprintf('Could not connect to any broker', $connectionAttempts), $e->getCode(), $e);
 		}
 
-		throw new ConnectionException(sprintf('Could not connect to broker at attempt %d', $connectionAttempts));
+
+		// @TODO catch InvalidArgumentExceptions or so either here or in Manager and let them bubble up as ConnectionException???
 	}
 
 	protected function writeFrame(Frame $frame)
@@ -226,9 +230,9 @@ class StompClient
 			$this->subscribedEventNames[] = $eventName;
 
 			$headers = [
-			'ack'                   => 'client',
-			'destination'           => $eventName,
-			'activemq.prefetchSize' => $this->options['prefetchSize'],
+				'ack'                   => 'client',
+				'destination'           => $eventName,
+				'activemq.prefetchSize' => $this->options['prefetchSize'],
 			];
 
 			if ($this->options['clientId']) {

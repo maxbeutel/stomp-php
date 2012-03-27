@@ -29,6 +29,10 @@ class Uri
 
 	public function __construct($uriString)
 	{
+		if (!is_string($uriString)) {
+			throw new InvalidArgumentException(sprintf('URI must be string, %s given', gettype($uriString)));
+		}
+
 		$uriParts = @parse_url($uriString);
 		$this->assertValidUri($uriParts);
 
@@ -42,8 +46,8 @@ class Uri
 			throw new InvalidArgumentException('Invalid broker URI');
 		}
 
-		if (!isset($uriParts['scheme']) || $uriParts['scheme'] !== 'tcp') {
-			throw new InvalidArgumentException('Only tcp is supported as scheme for now');
+		if (!isset($uriParts['scheme']) || !in_array($uriParts['scheme'], ['tcp', 'ssl'], true)) {
+			throw new InvalidArgumentException('Only tcp or ssl are supported as scheme for now');
 		}
 
 		if (!isset($uriParts['port']) || !is_numeric($uriParts['port'])) {
@@ -55,13 +59,13 @@ class Uri
 		}
 	}
 
-	public function getPort()
+	public function getHostWithScheme()
 	{
-		return $this->uriParts['port'];
+		return sprintf('%s://%s', $this->uriParts['scheme'], $this->uriParts['host']);
 	}
 
-	public function getHost()
+	public function __toString()
 	{
-		return $this->uriParts['host'];
+		return $this->uriString;
 	}
 }
