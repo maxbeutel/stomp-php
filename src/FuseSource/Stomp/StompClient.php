@@ -46,7 +46,7 @@ use BadMethodCallException;
  */
 class StompClient
 {
-	protected $uriManager;
+	protected $socketConnection;
 	protected $options;
 	protected $dispatcher;
 	protected $logger;
@@ -79,7 +79,7 @@ class StompClient
 		$this->logger = new Logger('StompClient');
 		$this->logger->pushHandler(new StreamHandler('php://stdout'));
 
-		$this->uriManager = new UriManager($uriString, $this->options['retryAttemptsPerUri'], $this->options['connectTimeout'], $this->logger);
+		$this->socketConnection = new SocketConnection($uriString, $this->options['retryAttemptsPerUri'], $this->options['connectTimeout'], $this->logger);
 	}
 
 	public function setLogger(Logger $logger)
@@ -99,23 +99,18 @@ class StompClient
 		return $this->sessionId;
 	}
 
-	protected function openSocket()
-	{
-		$this->socket = $this->uriManager->openSocketToBroker();
-	}
-
 	protected function writeFrame(Frame $frame)
 	{
 		$data = (string) $frame;
 
 		$this->logger->debug('Writing frame data', array('data' => $data));
 
-		$success = (bool) fwrite($this->socket, $data, strlen($data));
+		$success = $this->socketConnection->write($data);
 
 		$this->logger->debug('Frame written to socket', array('success' => $success));
 
 		if (!$success) {
-			$this->openSocket();
+			$this->socketConnection->open();
 			$this->writeFrame($frame);
 		} else {
 			if ($frame->waitForReceipt()) {
@@ -175,7 +170,7 @@ class StompClient
 		$this->logger->info('Starting event loop');
 
 		$this->base = event_base_new();
-		$eb = event_buffer_new($this->socket, $readCallback, NULL, $errorCallback, $this->base);
+		$eb = event_buffer_new($this->socketConnection->getRawSocket(), $readCallback, NULL, $errorCallback, $this->base);
 
 		event_buffer_timeout_set($eb, $this->options['readTimeout'], $this->options['writeTimeout']);
 
@@ -264,7 +259,7 @@ class StompClient
 	public function connect()
 	{
 		$this->logger->info('About to open socket and listen to socket connection');
-		$this->openSocket();
+		$this->socketConnection->open();
 
 		$this->dispatcher->addListener(SystemEventType::FRAME_ERROR, function(FrameEvent $event) {
 			$this->logger->err('Got frame error');
@@ -378,10 +373,8 @@ class StompClient
 			$headers['client-id'] = $this->options['clientId'];
 		}
 
-		if (is_resource($this->socket)) {
-			$this->writeFrame(Frame::createNew('DISCONNECT', $headers));
-			fclose($this->socket);
-		}
+		$this->writeFrame(Frame::createNew('DISCONNECT', $headers));
+		$this->socketConnection->close();
 	}
 
 	public function __destruct()

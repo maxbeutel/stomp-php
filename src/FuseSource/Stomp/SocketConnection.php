@@ -28,7 +28,7 @@ use Monolog\Logger;
  *
  */
 
-class UriManager
+class SocketConnection
 {
 	protected $uris = [];
 	protected $retryAttemptsPerUri;
@@ -36,6 +36,7 @@ class UriManager
 	protected $logger;
 
 	protected $options = [];
+	protected $socket;
 
 	protected $currentUriIndex = 0;
 	protected $currentRetryAttempt = 0;
@@ -108,7 +109,7 @@ class UriManager
 		$this->currentUriIndex = $this->currentRetryAttempt = 0;
 	}
 
-	public function openSocketToBroker()
+	public function open()
 	{
 		$this->reset();
 
@@ -116,11 +117,11 @@ class UriManager
 			while ($uri = $this->getNextUri()) {
 				$connectionErrorNumber = $connectionError = null;
 
-				$socket = @fsockopen($uri->getHostWithScheme(), $uri->getPort(), $connectionErrorNumber, $connectionError, $this->connectionTimeout);
+				$this->socket = @fsockopen($uri->getHostWithScheme(), $uri->getPort(), $connectionErrorNumber, $connectionError, $this->connectionTimeout);
 
-				if (is_resource($socket)) {
+				if (is_resource($this->socket)) {
 					$this->logger->info(sprintf('Successfully connected to broker "%s" at attempt %d', $uri, $this->uriManager->getCurrentRetryAttempt()));
-					return $socket;
+					return;
 				}
 
 				$this->logger->info(sprintf('Failed to connect to broker "%s" at attempt %d', $uri, $this->uriManager->getCurrentRetryAttempt()));
@@ -129,8 +130,8 @@ class UriManager
 					$this->logger->warn(sprintf('Got error no %d with message "%s"', $connectionErrorNumber, $connectionError));
 				}
 
-				if ($socket) {
-					@fclose($socket);
+				if ($this->socket) {
+					@fclose($this->socket);
 				}
 			}
 		} catch (BadMethodCallException $e) {
@@ -138,5 +139,15 @@ class UriManager
 		} catch (InvalidArgumentException $e) {
 			throw new ConnectionException('Attempted to use invalid URI', $e->getCode(), $e);
 		}
+	}
+
+	public function write($string)
+	{
+		return (bool) @fwrite($this->socket, $string, strlen($string));
+	}
+
+	public function getRawSocket()
+	{
+		return $this->socket;
 	}
 }
