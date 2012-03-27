@@ -161,21 +161,20 @@ class StompClient
 				$frame = Frame::unserializeFrom($data);
 				$this->dispatcher->dispatch($frame->getEventName(), new FrameEvent($this, $frame));
 			} catch (InvalidArgumentException $e) {
+				// @TODO this is actually a frame error?
+				// dispatch frame error here, make frame object optional, remove transport error alltogether
 				$this->dispatcher->dispatch(SystemEventType::TRANSPORT_ERROR, new ErrorEvent($e->getMessage()));
 			}
 		};
 
-		$errorCallback = function($buf, $code, $resource) {
-			$this->logger->debug('Error callback triggered', ['code' => $code]);
+		$errorCallback = function($buf, $errorCode, $resource) {
+			$this->logger->err('Error callback triggered, trying to reconnect', ['errorCode' => $errorCode]);
 
-			// EOF is not that unexpected, so dont throw an exception
-			if ($code & EVBUFFER_EOF) {
-				$this->logger->warn('Got EOF, shutting down');
-
-				$this->disconnect();
-			} else {
-				$this->dispatcher->dispatch(SystemEventType::TRANSPORT_ERROR, new ErrorEvent(sprintf('Libevent error code %d', $code)));
-			}
+			// we got an libevent error
+			// break current event loop, try to reconnect and eventually fail with a ConnectionException
+			$this->breakEventLoop();
+			$this->connect();
+			$this->startEventLoop();
 		};
 
 		$this->logger->info('Starting event loop');
