@@ -21,6 +21,7 @@
 
 namespace FuseSource\Stomp\Value;
 
+use InvalidArgumentException;
 use FuseSource\Stomp\Event\SystemEventType;
 use FuseSource\Stomp\Helper\InputHelper;
 
@@ -42,7 +43,19 @@ class Frame
 	public static function unserializeFrom($data)
 	{
 		$data = (string) $data;
-		list($header, $body) = explode("\n\n", $data, 2);
+
+		if (!trim($data)) {
+			throw new InvalidArgumentException('Invalid data given');
+		}
+
+		$dataParts = explode("\n\n", $data, 2);
+
+		$header = $dataParts[0];
+		$body = null;
+
+		if (isset($dataParts[1])) {
+			$body = $dataParts[1];
+		}
 
 		$header = explode("\n", $header);
 		$headers = [];
