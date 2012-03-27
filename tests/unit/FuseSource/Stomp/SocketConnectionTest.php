@@ -23,9 +23,9 @@ use PHPUnit_Framework_TestCase;
  *
  */
 
-// dummy class extending regular UriManager in order to test some internal stuff
+// dummy class extending regular SocketConnection in order to test some internal stuff
 // without the hassle of setting up a socket connection
-class DummyUriManager extends UriManager
+class DummySocketConnection extends SocketConnection
 {
 	public function _getOptions()
 	{
@@ -38,7 +38,7 @@ class DummyUriManager extends UriManager
 	}
 }
 
-class UriManagerTest extends PHPUnit_Framework_TestCase
+class SocketConnectionTest extends PHPUnit_Framework_TestCase
 {
 	public function setUp()
 	{
@@ -49,36 +49,36 @@ class UriManagerTest extends PHPUnit_Framework_TestCase
 
 	public function testValidUriStrings()
 	{
-		$manager = new DummyUriManager('failover://(tcp://localhost:61614,tcp://localhost:61613)', 3, 10, $this->loggerMock);
-		$manager = new DummyUriManager('failover://(tcp://localhost:61614,tcp://localhost:61613)?foo=bar', 3, 10, $this->loggerMock);
-		$manager = new DummyUriManager('tcp://localhost:61614', 3, 10, $this->loggerMock);
-		$manager = new DummyUriManager('ssl://localhost:61614', 3, 10, $this->loggerMock);
+		$manager = new DummySocketConnection('failover://(tcp://localhost:61614,tcp://localhost:61613)', 3, 10, $this->loggerMock);
+		$manager = new DummySocketConnection('failover://(tcp://localhost:61614,tcp://localhost:61613)?foo=bar', 3, 10, $this->loggerMock);
+		$manager = new DummySocketConnection('tcp://localhost:61614', 3, 10, $this->loggerMock);
+		$manager = new DummySocketConnection('ssl://localhost:61614', 3, 10, $this->loggerMock);
 	}
 
 	public function testInvalidUriString_1()
 	{
 		$this->setExpectedException('InvalidArgumentException', 'Could not create URI from URI string "failover:/(tcp://localhost:61614,tcp://localhost:61613)"');
 
-		$manager = new DummyUriManager('failover:/(tcp://localhost:61614,tcp://localhost:61613)', 3, 10, $this->loggerMock);
+		$manager = new DummySocketConnection('failover:/(tcp://localhost:61614,tcp://localhost:61613)', 3, 10, $this->loggerMock);
 	}
 
 	public function testInvalidUriString_2()
 	{
 		$this->setExpectedException('InvalidArgumentException', 'Could not create URI from URI string "tcp://localhost:61614 tcp://localhost:61613"');
 
-		$manager = new DummyUriManager('failover://(tcp://localhost:61614 tcp://localhost:61613)', 3, 10, $this->loggerMock);
+		$manager = new DummySocketConnection('failover://(tcp://localhost:61614 tcp://localhost:61613)', 3, 10, $this->loggerMock);
 	}
 
 	public function testDefaultOptions()
 	{
-		$manager = new DummyUriManager('failover://(tcp://localhost:61614,tcp://localhost:61613)', 3, 10, $this->loggerMock);
+		$manager = new DummySocketConnection('failover://(tcp://localhost:61614,tcp://localhost:61613)', 3, 10, $this->loggerMock);
 
 		$this->assertFalse($manager->_getOptions()['randomize']);
 	}
 
 	public function testFailoverUris()
 	{
-		$manager = new DummyUriManager('failover://(tcp://localhost:61614,tcp://localhost:61613)', 3, 10, $this->loggerMock);
+		$manager = new DummySocketConnection('failover://(tcp://localhost:61614,tcp://localhost:61613)', 3, 10, $this->loggerMock);
 
 		$uri = $manager->_getNextUri();
 		$this->assertInstanceOf('FuseSource\Stomp\Value\Uri', $uri);
@@ -111,7 +111,7 @@ class UriManagerTest extends PHPUnit_Framework_TestCase
 
 	public function testRandomizedUris()
 	{
-		$manager = new DummyUriManager('failover://(tcp://localhost:61614,tcp://localhost:61613)?randomize=true', 3, 10, $this->loggerMock);
+		$manager = new DummySocketConnection('failover://(tcp://localhost:61614,tcp://localhost:61613)?randomize=true', 3, 10, $this->loggerMock);
 		$this->assertTrue($manager->_getOptions()['randomize']);
 	}
 }
