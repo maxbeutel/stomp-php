@@ -40,6 +40,7 @@ class Frame
 
 	public static function unserializeFrom($data)
 	{
+		$data = (string) $data;
 		list($header, $body) = explode("\n\n", $data, 2);
 
 		$header = explode("\n", $header);

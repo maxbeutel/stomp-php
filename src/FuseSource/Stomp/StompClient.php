@@ -63,12 +63,14 @@ class StompClient
 	public function __construct($uriString, array $options = [])
 	{
 		$defaultOptions = [
-		'username'       => null,
-		'password'       => null,
-		'clientId'       => null,
-		'prefetchSize'   => 1,
-		'connectTimeout' => 60,
-		'waitForReceipt' => false,
+			'username'       => null,
+			'password'       => null,
+			'clientId'       => null,
+			'prefetchSize'   => 1,
+			'connectTimeout' => 60,
+			'waitForReceipt' => false,
+			'readTimeout'	 => 10,
+			'writeTimeout'	 => 10,
 		];
 
 		$this->brokerUri = new Uri($uriString);
@@ -201,6 +203,8 @@ class StompClient
 
 		$this->base = event_base_new();
 		$eb = event_buffer_new($this->socket, $readCallback, NULL, $errorCallback, $this->base);
+
+		event_buffer_timeout_set($eb, $this->options['readTimeout'], $this->options['writeTimeout']);
 
 		event_buffer_base_set($eb, $this->base);
 		event_buffer_enable($eb, EV_READ);

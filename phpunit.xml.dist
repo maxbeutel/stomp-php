@@ -10,11 +10,11 @@
     convertWarningsToExceptions = "true"
     processIsolation            = "false"
     stopOnFailure               = "false"
-    syntaxCheck                 = "false"
-    bootstrap                   = "test/bootstrap.php" >
+    syntaxCheck                 = "true"
+    bootstrap                   = "tests/bootstrap.php" >
     <testsuites>
         <testsuite name="stomp-php Test Suite">
-            <directory>./test/</directory>
+            <directory>./tests/</directory>
         </testsuite>
     </testsuites>
 </phpunit>
