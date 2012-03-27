@@ -364,6 +364,10 @@ class StompClient
 
 	public function disconnect()
 	{
+		if (!$this->connected) {
+			return;
+		}
+
 		$this->logger->info('Shutting down gracefully');
 
 		$this->breakEventLoop();
@@ -376,6 +380,8 @@ class StompClient
 
 		$this->writeFrame(Frame::createNew('DISCONNECT', $headers));
 		$this->socketConnection->close();
+
+		$this->connected = false;
 	}
 
 	public function __destruct()

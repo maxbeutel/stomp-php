@@ -1,5 +1,4 @@
 - improve transaction handling, return transaction id on begin and/or dont require to specify transaction id in send call
 - integration tests using node.js
 - update README and provide some documentation and install guide via composer
-- dont disconnect in destructor (at all?) when already disconnected
 - investigate exceptions thrown while running examples
