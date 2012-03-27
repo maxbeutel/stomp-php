@@ -67,7 +67,7 @@ class StompClient
 			'prefetchSize'   		=> 1,
 			'connectTimeout'		=> 60,
 			'waitForReceipt' 		=> false,
-			'readTimeout'			=> 10,
+			'readTimeout'			=> null,
 			'writeTimeout'	 		=> 10,
 			'retryAttemptsPerUri' 	=> 10,
 		];
@@ -300,15 +300,15 @@ class StompClient
 		$this->startEventLoop();
 	}
 
-	public function send($destination, $msg, $properties = [])
+	public function send($destination, $body, $properties = [])
 	{
 		$this->logger->debug('About to send message frame');
 
-		$frame = Frame::createNew('SEND', array_merge(['destination' => $destination], $properties), $msg, $this->options['waitForReceipt']);
+		$frame = Frame::createNew('SEND', array_merge(['destination' => $destination], $properties), $body, $this->options['waitForReceipt']);
 		$this->writeFrame($frame);
 	}
 
-	public function begin($transactionId = null)
+	public function beginTransaction($transactionId = null)
 	{
 		$this->logger->debug('About to start transaction', ['transactionId' => $transactionId]);
 
@@ -322,7 +322,7 @@ class StompClient
 		$this->writeFrame($frame);
 	}
 
-	public function commit($transactionId = null)
+	public function commitTransaction($transactionId = null)
 	{
 		$this->logger->debug('About to commit transaction', ['transactionId' => $transactionId]);
 
@@ -336,7 +336,7 @@ class StompClient
 		$this->writeFrame($frame);
 	}
 
-	public function abort($transactionId = null)
+	public function abortTransaction($transactionId = null)
 	{
 		$this->logger->debug('About to abort transaction', ['transactionId' => $transactionId]);
 
