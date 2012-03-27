@@ -28,13 +28,13 @@ use FuseSource\Stomp\Helper\InputHelper;
 
 class UriManager
 {
-	private $uris = [];
-	private $retryAttemptsPerUri;
+	protected $uris = [];
+	protected $retryAttemptsPerUri;
 
-	private $options = [];
+	protected $options = [];
 
-	private $currentUriIndex = 0;
-	private $currentRetries = 0;
+	protected $currentUriIndex = 0;
+	protected $currentRetries = 0;
 
 	public function __construct($uriString, $retryAttemptsPerUri)
 	{
@@ -42,18 +42,18 @@ class UriManager
 			'randomize' => false,
 		];
 
+		// taken from FuseSource StompClient
+		// @author Hiram Chirino <hiram@hiramchirino.com>
+		// @author Dejan Bosanac <dejan@nighttale.net>
+		// @author Michael Caplan <mcaplan@labnet.net>
 		$pattern = '|^(([a-zA-Z0-9]+)://)+\(*([a-zA-Z0-9\.:/i,-]+)\)*\??([a-zA-Z0-9=&]*)$|i';
 
 		if (!preg_match($pattern, $uriString, $regs)) {
 			throw new InvalidArgumentException('Cant parse URIs from URI string');
 		}
 
-        $options = $regs[4];
-
-        if ($options) {
-        	parse_str($options, $options);
-        	$options = InputHelper::convertStringOptions($options);
-        }
+		parse_str($regs[4], $options);
+        $options = InputHelper::convertStringOptions($options);
 
         $singleUriStrings = explode(',', $regs[3]);
 
@@ -66,7 +66,7 @@ class UriManager
         }
 
         $this->retryAttemptsPerUri = $retryAttemptsPerUri;
-        $this->options = array_merge($this->defaultOptions, $options);
+        $this->options = array_merge($defaultOptions, $options);
 	}
 
 	public function getNextUri()
@@ -85,6 +85,11 @@ class UriManager
 		$this->currentRetries++;
 
 		return $uri;
+	}
+
+	public function getCurrentRetry()
+	{
+		return $this->currentRetries;
 	}
 
 	public function reset()

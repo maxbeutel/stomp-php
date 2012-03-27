@@ -1,5 +1,13 @@
 This is a modified version of http://stomp.fusesource.org/documentation/php/ with refactored structure using libevent for receiving frames from STOMP server.
 
+Original authors:
+
+Hiram Chirino <hiram@hiramchirino.com>
+Dejan Bosanac <dejan@nighttale.net>
+Michael Caplan <mcaplan@labnet.net>
+
+And other contributors.
+
 
 
 
