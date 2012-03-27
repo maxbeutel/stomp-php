@@ -39,4 +39,21 @@ class InputHelper
 
 		return $options;
 	}
+
+	public static function convertPhpOptions(array $options)
+	{
+		foreach ($options as $key => $value) {
+			if ($value === true) {
+				$value = 'true';
+			}
+
+			if ($value === false) {
+				$value = 'false';
+			}
+
+			$options[$key] = $value;
+		}
+
+		return $options;
+	}
 }

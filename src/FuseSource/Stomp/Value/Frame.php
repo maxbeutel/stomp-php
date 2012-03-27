@@ -3,6 +3,7 @@
 namespace FuseSource\Stomp\Value;
 
 use FuseSource\Stomp\Event\SystemEventType;
+use FuseSource\Stomp\Helper\InputHelper;
 
 /**
  *
@@ -111,7 +112,9 @@ class Frame
 	{
 		$data = $this->command . "\n";
 
-		foreach ($this->headers as $name => $value) {
+		$headers = InputHelper::convertPhpOptions($this->headers);
+
+		foreach ($headers as $name => $value) {
 			$data .= $name . ': ' . $value . "\n";
 		}
 

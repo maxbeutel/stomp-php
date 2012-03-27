@@ -25,9 +25,15 @@ use PHPUnit_Framework_TestCase;
 
 class InputHelperTest extends PHPUnit_Framework_TestCase
 {
-	public function testConvertStringOptionsTransformsToBool()
+	public function testConvertStringOptionsTransformsStringToBool()
 	{
 		$options = InputHelper::convertStringOptions(['foo' => 'bar', 'one' => 'true', 'two' => 'false']);
 		$this->assertSame(['foo' => 'bar', 'one' => true, 'two' => false], $options);
+	}
+
+	public function testConvertPhpOptionsTransformsBoolToString()
+	{
+		$options = InputHelper::convertPhpOptions(['foo' => 'bar', 'one' => true, 'two' => false]);
+		$this->assertSame(['foo' => 'bar', 'one' => 'true', 'two' => 'false'], $options);
 	}
 }

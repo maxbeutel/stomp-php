@@ -64,7 +64,7 @@ class SocketConnection
 		}
 
 		if (count($singleUriStrings) === 0) {
-			throw new ConnectionException(sprintf('No URIs found in "%s"', $uriString));
+			throw new InvalidArgumentException(sprintf('No URIs found in "%s"', $uriString));
 		}
 
 		// create URI value objects
@@ -72,7 +72,7 @@ class SocketConnection
         	try {
         		$this->uris[] = new Uri($singleUriString);
         	} catch (InvalidArgumentException $e) {
-        		throw new ConnectionException(sprintf('Could not create URI from URI string "%s"', $singleUriString));
+        		throw new InvalidArgumentException(sprintf('Could not create URI from URI string "%s"', $singleUriString));
         	}
         }
 
@@ -120,19 +120,17 @@ class SocketConnection
 				$this->socket = @fsockopen($uri->getHostWithScheme(), $uri->getPort(), $connectionErrorNumber, $connectionError, $this->connectionTimeout);
 
 				if (is_resource($this->socket)) {
-					$this->logger->info(sprintf('Successfully connected to broker "%s" at attempt %d', $uri, $this->uriManager->getCurrentRetryAttempt()));
+					$this->logger->info(sprintf('Successfully connected to broker "%s" at attempt %d', $uri, $this->currentRetryAttempt));
 					return;
 				}
 
-				$this->logger->info(sprintf('Failed to connect to broker "%s" at attempt %d', $uri, $this->uriManager->getCurrentRetryAttempt()));
+				$this->logger->info(sprintf('Failed to connect to broker "%s" at attempt %d', $uri, $this->currentRetryAttempt));
 
 				if ($connectionErrorNumber || $connectionError) {
 					$this->logger->warn(sprintf('Got error no %d with message "%s"', $connectionErrorNumber, $connectionError));
 				}
 
-				if ($this->socket) {
-					@fclose($this->socket);
-				}
+				$this->close();
 			}
 		} catch (BadMethodCallException $e) {
 			throw new ConnectionException(sprintf('Could not connect to any broker', $connectionAttempts), $e->getCode(), $e);
@@ -149,5 +147,12 @@ class SocketConnection
 	public function getRawSocket()
 	{
 		return $this->socket;
+	}
+
+	public function close()
+	{
+		if ($this->socket) {
+			@fclose($this->socket);
+		}
 	}
 }

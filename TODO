@@ -1,0 +1,6 @@
+- improve transaction handling, return transaction id on begin and/or dont require to specify transaction id in send call
+- fix license headers for all files
+- integration tests using node.js
+- make travis CI work if possible
+- update README and provide some documentation and install guide via composer
+- cleanup namespace (FuseSource)

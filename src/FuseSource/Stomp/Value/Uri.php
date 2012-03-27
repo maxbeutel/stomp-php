@@ -59,6 +59,11 @@ class Uri
 		}
 	}
 
+	public function getPort()
+	{
+		return $this->uriParts['port'];
+	}
+
 	public function getHostWithScheme()
 	{
 		return sprintf('%s://%s', $this->uriParts['scheme'], $this->uriParts['host']);

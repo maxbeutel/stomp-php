@@ -57,14 +57,14 @@ class SocketConnectionTest extends PHPUnit_Framework_TestCase
 
 	public function testInvalidUriString_1()
 	{
-		$this->setExpectedException('FuseSource\Stomp\Exception\ConnectionException', 'Could not create URI from URI string "failover:/(tcp://localhost:61614,tcp://localhost:61613)"');
+		$this->setExpectedException('InvalidArgumentException', 'Could not create URI from URI string "failover:/(tcp://localhost:61614,tcp://localhost:61613)"');
 
 		$manager = new DummySocketConnection('failover:/(tcp://localhost:61614,tcp://localhost:61613)', 3, 10, $this->loggerMock);
 	}
 
 	public function testInvalidUriString_2()
 	{
-		$this->setExpectedException('FuseSource\Stomp\Exception\ConnectionException', 'Could not create URI from URI string "tcp://localhost:61614 tcp://localhost:61613"');
+		$this->setExpectedException('InvalidArgumentException', 'Could not create URI from URI string "tcp://localhost:61614 tcp://localhost:61613"');
 
 		$manager = new DummySocketConnection('failover://(tcp://localhost:61614 tcp://localhost:61613)', 3, 10, $this->loggerMock);
 	}
