@@ -57,15 +57,16 @@ class StompClient
 	public function __construct($uriString, array $options = [])
 	{
 		$defaultOptions = [
-			'username'       		=> null,
-			'password'       		=> null,
-			'clientId'       		=> null,
-			'prefetchSize'   		=> 1,
+			'username'				=> null,
+			'password'				=> null,
+			'clientId'				=> null,
+			'prefetchSize'			=> 1,
 			'connectTimeout'		=> 60,
-			'waitForReceipt' 		=> false,
+			'waitForReceipt'		=> false,
 			'readTimeout'			=> null,
-			'writeTimeout'	 		=> 10,
-			'retryAttemptsPerUri' 	=> 10,
+			'writeTimeout'			=> 10,
+			'retryAttemptsPerUri'	=> 10,
+			'logLevel'				=> Logger::DEBUG,
 		];
 
 		$this->options = array_merge($defaultOptions, $options);
@@ -73,7 +74,7 @@ class StompClient
 		$this->dispatcher = new EventDispatcher();
 
 		$this->logger = new Logger('StompClient');
-		$this->logger->pushHandler(new StreamHandler('php://stdout'));
+		$this->logger->pushHandler(new StreamHandler('php://stdout', $this->options['logLevel']));
 
 		$this->socketConnection = new SocketConnection($uriString, $this->options['retryAttemptsPerUri'], $this->options['connectTimeout'], $this->logger);
 	}
