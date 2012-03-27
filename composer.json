@@ -24,7 +24,7 @@
     ],
     "require": {
         "php": ">=5.4.0",
-        "ext-libevent": ">=0.0.5",
+        "ext-libevent": ">=0.0.4",
         "symfony/class-loader": "v2.0.12",
         "symfony/event-dispatcher": "v2.0.12",
         "monolog/monolog": "v1.0.2"
