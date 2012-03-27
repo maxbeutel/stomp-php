@@ -1,0 +1,29 @@
+{
+    "hash": "283d73c799b6e4d788c70961159513a4",
+    "packages": [
+        {
+            "package": "maxbeutel/node-stomp-server",
+            "version": "1.0.0"
+        },
+        {
+            "package": "monolog/monolog",
+            "version": "1.0.2"
+        },
+        {
+            "package": "symfony/class-loader",
+            "version": "v2.0.12"
+        },
+        {
+            "package": "symfony/event-dispatcher",
+            "version": "v2.0.12"
+        }
+    ],
+    "packages-dev": null,
+    "aliases": [
+
+    ],
+    "minimum-stability": "dev",
+    "stability-flags": [
+
+    ]
+}
