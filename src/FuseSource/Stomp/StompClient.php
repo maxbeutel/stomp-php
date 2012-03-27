@@ -157,10 +157,10 @@ class StompClient
 			$this->dispatcher->dispatch($frame->getEventName(), new FrameEvent($this, $frame));
 		};
 
-		$errorCallback = function($buf, $what, $arg) {
-			$this->logger->debug('Error callback triggered', ['what' => $what, 'arg' => $arg]);
+		$errorCallback = function($buf, $code, $resource) {
+			$this->logger->debug('Error callback triggered', ['code' => $code]);
 
-			$this->dispatcher->dispatch(SystemEventType::TRANSPORT_ERROR, new ErrorEvent($this, $what));
+			$this->dispatcher->dispatch(SystemEventType::TRANSPORT_ERROR, new ErrorEvent(sprintf('Libevent error code %d', $code)));
 		};
 
 		$this->logger->info('Starting event loop');
