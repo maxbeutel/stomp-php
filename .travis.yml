@@ -5,6 +5,7 @@ php:
 
 script:
   - phpunit
+  - php composer.phar validate
 
 before_script:
   - wget http://getcomposer.org/composer.phar

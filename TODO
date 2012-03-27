@@ -2,4 +2,6 @@
 - integration tests using node.js
 - update README and provide some documentation and install guide via composer
 - cleanup namespace (FuseSource)
-- clean up composer.json and validate it during build process
+- clean up composer.json
+- dont disconnect in destructor (at all?) when already disconnected
+- investigate exceptions thrown while running examples
