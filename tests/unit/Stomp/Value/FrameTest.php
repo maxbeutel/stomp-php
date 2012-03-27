@@ -29,7 +29,7 @@ class FrameTest extends PHPUnit_Framework_TestCase
 		$frame = Frame::createNew();
 		$this->assertNull($frame->getCommand());
 		$this->assertSame([], $frame->getHeaders());
-		$this->assertNull($frame->getBody());
+		$this->assertSame('', $frame->getBody());
 		$this->assertFalse($frame->waitForReceipt());
 
 		$frame = Frame::createNew('COMMAND', ['headerKey' => 'headerValue'], 'body', true);
@@ -87,7 +87,7 @@ content-type:text/plain';
 		$this->assertSame('SEND', $frame->getCommand());
 		$this->assertSame('/queue/a', $frame->getEventName());
 		$this->assertFalse($frame->waitForReceipt());
-		$this->assertNull($frame->getBody());
+		$this->assertSame('', $frame->getBody());;
 		$this->assertSame(['destination' => '/queue/a', 'content-type' => 'text/plain'], $frame->getHeaders());
 	}
 }
