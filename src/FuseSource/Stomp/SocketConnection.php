@@ -64,7 +64,7 @@ class SocketConnection
 		}
 
 		if (count($singleUriStrings) === 0) {
-			throw new InvalidArgumentException(sprintf('No URIs found in "%s"', $uriString));
+			throw new ConnectionException(sprintf('No URIs found in "%s"', $uriString));
 		}
 
 		// create URI value objects
@@ -72,7 +72,7 @@ class SocketConnection
         	try {
         		$this->uris[] = new Uri($singleUriString);
         	} catch (InvalidArgumentException $e) {
-        		throw new InvalidArgumentException(sprintf('Could not create URI from URI string "%s"', $singleUriString));
+        		throw new ConnectionException(sprintf('Could not create URI from URI string "%s"', $singleUriString));
         	}
         }
 
