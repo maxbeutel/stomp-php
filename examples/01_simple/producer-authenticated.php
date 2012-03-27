@@ -20,7 +20,7 @@
 
 require_once __DIR__ . '/../../autoload.php';
 
-use FuseSource\Stomp\StompClient;
+use Stomp\StompClient;
 
 $client = new StompClient('tcp://localhost:61613', ['username' => 'user', 'password' => 'secret']);
 $client->connect();

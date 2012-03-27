@@ -17,22 +17,32 @@
  *
  */
 
-namespace FuseSource\Stomp\Event;
+namespace Stomp\Event;
 
 use PHPUnit_Framework_TestCase;
 
-class ErrorEventTest extends PHPUnit_Framework_TestCase
+class FrameEventTest extends PHPUnit_Framework_TestCase
 {
-	private $message;
+	private $connectionMock;
+	private $frameMock;
 
 	public function setUp()
 	{
-		$this->message = 'Some bad error';
+		$this->connectionMock = $this->getMockBuilder('Stomp\StompClient')
+									 ->disableOriginalConstructor()
+									 // hack - mock only certain methods as PHPUnit cant cope with callable typehint yet
+									 ->setMethods(['connect', 'disconnect'])
+									 ->getMock();
+
+		$this->frameMock = $this->getMockBuilder('Stomp\Value\Frame')
+								->disableOriginalConstructor()
+								->getMock();
 	}
 
 	public function testSimpleGetter()
 	{
-		$event = new ErrorEvent($this->message);
-		$this->assertSame($this->message, $event->getMessage());
+		$event = new FrameEvent($this->connectionMock, $this->frameMock);
+		$this->assertSame($this->connectionMock, $event->getConnection());
+		$this->assertSame($this->frameMock, $event->getFrame());
 	}
 }

@@ -18,15 +18,30 @@
  *
  */
 
-namespace FuseSource\Stomp\Event;
+namespace Stomp\Event;
 
-class SystemEventType
+use Stomp\StompClient;
+use Stomp\Value\Frame;
+use Symfony\Component\EventDispatcher\Event;
+
+class FrameEvent extends Event
 {
-	const FRAME_CONNECTED = 'connected';
+	private $connection;
+	private $frame;
 
-	const FRAME_ERROR = 'error';
+	public function __construct(StompClient $connection, Frame $frame)
+	{
+		$this->connection = $connection;
+		$this->frame = $frame;
+	}
 
-	const FRAME_RECEIPT = 'receipt';
+	public function getConnection()
+	{
+		return $this->connection;
+	}
 
-	const TRANSPORT_ERROR = 'transportError';
+	public function getFrame()
+	{
+		return $this->frame;
+	}
 }

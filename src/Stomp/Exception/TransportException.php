@@ -18,10 +18,10 @@
  *
  */
 
-namespace FuseSource\Stomp\Exception;
+namespace Stomp\Exception;
 
 use Exception;
 
-class ReceiptException extends FrameException
+class TransportException extends Exception implements ExceptionInterface
 {
 }

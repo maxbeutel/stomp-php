@@ -18,21 +18,41 @@
  *
  */
 
-namespace FuseSource\Stomp\Helper;
+namespace Stomp\Helper;
 
-use PHPUnit_Framework_TestCase;
-
-class InputHelperTest extends PHPUnit_Framework_TestCase
+class InputHelper
 {
-	public function testConvertStringOptionsTransformsStringToBool()
+	public static function convertStringOptions(array $options)
 	{
-		$options = InputHelper::convertStringOptions(['foo' => 'bar', 'one' => 'true', 'two' => 'false']);
-		$this->assertSame(['foo' => 'bar', 'one' => true, 'two' => false], $options);
+		foreach ($options as $key => $value) {
+			if ($value === 'true') {
+				$value = true;
+			}
+
+			if ($value === 'false') {
+				$value = false;
+			}
+
+			$options[$key] = $value;
+		}
+
+		return $options;
 	}
 
-	public function testConvertPhpOptionsTransformsBoolToString()
+	public static function convertPhpOptions(array $options)
 	{
-		$options = InputHelper::convertPhpOptions(['foo' => 'bar', 'one' => true, 'two' => false]);
-		$this->assertSame(['foo' => 'bar', 'one' => 'true', 'two' => 'false'], $options);
+		foreach ($options as $key => $value) {
+			if ($value === true) {
+				$value = 'true';
+			}
+
+			if ($value === false) {
+				$value = 'false';
+			}
+
+			$options[$key] = $value;
+		}
+
+		return $options;
 	}
 }

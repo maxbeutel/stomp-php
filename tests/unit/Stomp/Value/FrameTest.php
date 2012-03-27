@@ -18,7 +18,7 @@
  *
  */
 
-namespace FuseSource\Stomp\Value;
+namespace Stomp\Value;
 
 use PHPUnit_Framework_TestCase;
 

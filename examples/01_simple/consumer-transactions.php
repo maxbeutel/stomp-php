@@ -20,9 +20,9 @@
 
 require_once __DIR__ . '/../../autoload.php';
 
-use FuseSource\Stomp\StompClient;
-use FuseSource\Stomp\Event\FrameEvent;
-use FuseSource\Stomp\Event\SystemEventType;
+use Stomp\StompClient;
+use Stomp\Event\FrameEvent;
+use Stomp\Event\SystemEventType;
 
 $client = new StompClient('tcp://localhost:61613');
 $client->connect();

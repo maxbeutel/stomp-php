@@ -20,12 +20,12 @@ require_once __DIR__ . '/../../autoload.php';
  *
  */
 
-use FuseSource\Stomp\StompClient;
-use FuseSource\Stomp\Event\FrameEvent;
-use FuseSource\Stomp\Exception\FrameException;
-use FuseSource\Stomp\Exception\ReceiptException;
-use FuseSource\Stomp\Exception\TransportException;
-use FuseSource\Stomp\Exception\ConnectionException;
+use Stomp\StompClient;
+use Stomp\Event\FrameEvent;
+use Stomp\Exception\FrameException;
+use Stomp\Exception\ReceiptException;
+use Stomp\Exception\TransportException;
+use Stomp\Exception\ConnectionException;
 
 // NOTE: the event loop is exited when an exception is thrown from the client
 try {

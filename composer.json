@@ -1,15 +1,20 @@
 {
-    "name": "fusesource/stomp-php",
+    "name": "maxbeutel/libevent-stomp-php",
     "type": "library",
-    "description": "stomp support for PHP",
-    "keywords": ["messaging","stomp","jms","activeMQ"],
+    "description": "STOMP client using libevent for PHP",
+    "keywords": ["messaging", "stomp", "libevent", "activeMQ", "pubsub"],
     "homepage": "http://github.com/dejanb/stomp-php",
     "license": "Apache-2.0",
     "authors": [
         {
+            "name": "Max Beutel",
+            "email": "me@maxbeutel.de",
+            "homepage": "http://www.maxbeutel.de"
+        },
+        {
             "name": "Dejan Bosnanac",
             "email": "dejan@nighttale.net",
-            "homepage": "http://www.nighttale.net/"
+            "homepage": "http://www.nighttale.net"
         },
         {
             "name": "Sören Rohweder",
@@ -19,13 +24,14 @@
     ],
     "require": {
         "php": ">=5.4.0",
+        "ext-libevent": ">=0.0.5",
         "symfony/class-loader": "v2.0.12",
         "symfony/event-dispatcher": "v2.0.12",
         "monolog/monolog": "v1.0.2"
     },
     "autoload": {
         "psr-0": {
-            "FuseSource": "src/main"
+            "Stomp": "src"
         }
     }
 }

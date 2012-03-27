@@ -2,6 +2,7 @@
 
 /**
  *
+ * Copyright 2005-2006 The Apache Software Foundation
  * Copyright 2012 Max Beutel <me@maxbeutel.de>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,24 +19,11 @@
  *
  */
 
-namespace FuseSource\Stomp\Exception;
+namespace Stomp\Exception;
 
-use Exception;
-use FuseSource\Stomp\Value\Frame;
-
-class FrameException extends Exception implements ExceptionInterface
+/**
+ * @author srohweder
+ */
+interface ExceptionInterface
 {
-	private $frame;
-
-	public function __construct($message = null, $code = 0, Exception $previous = null, Frame $frame = null)
-	{
-		parent::__construct($message, $code, $previous);
-
-		$this->frame = $frame;
-	}
-
-	public function getFrame()
-	{
-		return $this->frame;
-	}
 }

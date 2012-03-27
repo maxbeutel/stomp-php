@@ -20,8 +20,8 @@
 
 require_once __DIR__ . '/../../autoload.php';
 
-use FuseSource\Stomp\StompClient;
-use FuseSource\Stomp\Event\FrameEvent;
+use Stomp\StompClient;
+use Stomp\Event\FrameEvent;
 
 $con = new StompClient('failover://(tcp://localhost:61613,tcp://localhost:61612)');
 $con->connect();

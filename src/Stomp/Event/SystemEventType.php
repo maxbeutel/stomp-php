@@ -2,7 +2,6 @@
 
 /**
  *
- * Copyright 2005-2006 The Apache Software Foundation
  * Copyright 2012 Max Beutel <me@maxbeutel.de>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,11 +18,15 @@
  *
  */
 
-namespace FuseSource\Stomp\Exception;
+namespace Stomp\Event;
 
-/**
- * @author srohweder
- */
-interface ExceptionInterface
+class SystemEventType
 {
+	const FRAME_CONNECTED = 'connected';
+
+	const FRAME_ERROR = 'error';
+
+	const FRAME_RECEIPT = 'receipt';
+
+	const TRANSPORT_ERROR = 'transportError';
 }

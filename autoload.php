@@ -26,4 +26,4 @@ use Symfony\Component\ClassLoader\UniversalClassLoader;
 $loader = new UniversalClassLoader();
 $loader->register();
 
-$loader->registerNamespace('FuseSource', __DIR__ . '/src');
+$loader->registerNamespace('Stomp', __DIR__ . '/src');

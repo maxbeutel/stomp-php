@@ -18,41 +18,10 @@
  *
  */
 
-namespace FuseSource\Stomp\Helper;
+namespace Stomp\Exception;
 
-class InputHelper
+use Exception;
+
+class ConnectionException extends Exception implements ExceptionInterface
 {
-	public static function convertStringOptions(array $options)
-	{
-		foreach ($options as $key => $value) {
-			if ($value === 'true') {
-				$value = true;
-			}
-
-			if ($value === 'false') {
-				$value = false;
-			}
-
-			$options[$key] = $value;
-		}
-
-		return $options;
-	}
-
-	public static function convertPhpOptions(array $options)
-	{
-		foreach ($options as $key => $value) {
-			if ($value === true) {
-				$value = 'true';
-			}
-
-			if ($value === false) {
-				$value = 'false';
-			}
-
-			$options[$key] = $value;
-		}
-
-		return $options;
-	}
 }

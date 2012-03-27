@@ -18,13 +18,13 @@
  *
  */
 
-namespace FuseSource\Stomp;
+namespace Stomp;
 
 use InvalidArgumentException;
 use BadMethodCallException;
-use FuseSource\Stomp\Exception\ConnectionException;
-use FuseSource\Stomp\Value\Uri;
-use FuseSource\Stomp\Helper\InputHelper;
+use Stomp\Exception\ConnectionException;
+use Stomp\Value\Uri;
+use Stomp\Helper\InputHelper;
 use Monolog\Logger;
 
 class SocketConnection

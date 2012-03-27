@@ -18,7 +18,7 @@
  *
  */
 
-namespace FuseSource\Stomp;
+namespace Stomp;
 
 use PHPUnit_Framework_TestCase;
 
@@ -80,28 +80,28 @@ class SocketConnectionTest extends PHPUnit_Framework_TestCase
 		$manager = new DummySocketConnection('failover://(tcp://localhost:61614,tcp://localhost:61613)', 3, 10, $this->loggerMock);
 
 		$uri = $manager->_getNextUri();
-		$this->assertInstanceOf('FuseSource\Stomp\Value\Uri', $uri);
+		$this->assertInstanceOf('Stomp\Value\Uri', $uri);
 		$this->assertSame('tcp://localhost:61614', (string) $uri);
 
 		$uri = $manager->_getNextUri();
-		$this->assertInstanceOf('FuseSource\Stomp\Value\Uri', $uri);
+		$this->assertInstanceOf('Stomp\Value\Uri', $uri);
 		$this->assertSame('tcp://localhost:61614', (string) $uri);
 
 		$uri = $manager->_getNextUri();
-		$this->assertInstanceOf('FuseSource\Stomp\Value\Uri', $uri);
+		$this->assertInstanceOf('Stomp\Value\Uri', $uri);
 		$this->assertSame('tcp://localhost:61614', (string) $uri);
 
 
 		$uri = $manager->_getNextUri();
-		$this->assertInstanceOf('FuseSource\Stomp\Value\Uri', $uri);
+		$this->assertInstanceOf('Stomp\Value\Uri', $uri);
 		$this->assertSame('tcp://localhost:61613', (string) $uri);
 
 		$uri = $manager->_getNextUri();
-		$this->assertInstanceOf('FuseSource\Stomp\Value\Uri', $uri);
+		$this->assertInstanceOf('Stomp\Value\Uri', $uri);
 		$this->assertSame('tcp://localhost:61613', (string) $uri);
 
 		$uri = $manager->_getNextUri();
-		$this->assertInstanceOf('FuseSource\Stomp\Value\Uri', $uri);
+		$this->assertInstanceOf('Stomp\Value\Uri', $uri);
 		$this->assertSame('tcp://localhost:61613', (string) $uri);
 
 		$this->setExpectedException('BadMethodCallException', 'No more URIs left to try');

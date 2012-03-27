@@ -18,30 +18,22 @@
  *
  */
 
-namespace FuseSource\Stomp\Event;
+namespace Stomp\Event;
 
-use FuseSource\Stomp\StompClient;
-use FuseSource\Stomp\Value\Frame;
+use Stomp\StompClient;
 use Symfony\Component\EventDispatcher\Event;
 
-class FrameEvent extends Event
+class ErrorEvent extends Event
 {
-	private $connection;
-	private $frame;
+	private $message;
 
-	public function __construct(StompClient $connection, Frame $frame)
+	public function __construct($message)
 	{
-		$this->connection = $connection;
-		$this->frame = $frame;
+		$this->message = $message;
 	}
 
-	public function getConnection()
+	public function getMessage()
 	{
-		return $this->connection;
-	}
-
-	public function getFrame()
-	{
-		return $this->frame;
+		return $this->message;
 	}
 }

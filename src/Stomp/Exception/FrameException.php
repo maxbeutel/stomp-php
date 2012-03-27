@@ -18,22 +18,24 @@
  *
  */
 
-namespace FuseSource\Stomp\Event;
+namespace Stomp\Exception;
 
-use FuseSource\Stomp\StompClient;
-use Symfony\Component\EventDispatcher\Event;
+use Exception;
+use Stomp\Value\Frame;
 
-class ErrorEvent extends Event
+class FrameException extends Exception implements ExceptionInterface
 {
-	private $message;
+	private $frame;
 
-	public function __construct($message)
+	public function __construct($message = null, $code = 0, Exception $previous = null, Frame $frame = null)
 	{
-		$this->message = $message;
+		parent::__construct($message, $code, $previous);
+
+		$this->frame = $frame;
 	}
 
-	public function getMessage()
+	public function getFrame()
 	{
-		return $this->message;
+		return $this->frame;
 	}
 }

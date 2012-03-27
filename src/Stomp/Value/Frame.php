@@ -3,6 +3,9 @@
 /**
  *
  * Copyright 2005-2006 The Apache Software Foundation
+ * 		@author Hiram Chirino <hiram@hiramchirino.com>
+ * 		@author Dejan Bosanac <dejan@nighttale.net>
+ * 		@author Michael Caplan <mcaplan@labnet.net>
  * Copyright 2012 Max Beutel <me@maxbeutel.de>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,11 +22,11 @@
  *
  */
 
-namespace FuseSource\Stomp\Value;
+namespace Stomp\Value;
 
 use InvalidArgumentException;
-use FuseSource\Stomp\Event\SystemEventType;
-use FuseSource\Stomp\Helper\InputHelper;
+use Stomp\Event\SystemEventType;
+use Stomp\Helper\InputHelper;
 
 class Frame
 {

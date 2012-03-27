@@ -20,11 +20,11 @@
 
 require_once __DIR__ . '/../../autoload.php';
 
-use FuseSource\Stomp\StompClient;
-use FuseSource\Stomp\Exception\FrameException;
-use FuseSource\Stomp\Exception\ReceiptException;
-use FuseSource\Stomp\Exception\TransportException;
-use FuseSource\Stomp\Exception\ConnectionException;
+use Stomp\StompClient;
+use Stomp\Exception\FrameException;
+use Stomp\Exception\ReceiptException;
+use Stomp\Exception\TransportException;
+use Stomp\Exception\ConnectionException;
 
 try {
 	$client = new StompClient('tcp://localhost:61613');

@@ -1,7 +1,5 @@
 <?php
 
-namespace FuseSource\Stomp;
-
 /**
  *
  * Copyright 2005-2006 The Apache Software Foundation
@@ -24,14 +22,16 @@ namespace FuseSource\Stomp;
  *
  */
 
-use FuseSource\Stomp\Exception\FrameException;
-use FuseSource\Stomp\Exception\ReceiptException;
-use FuseSource\Stomp\Exception\TransportException;
-use FuseSource\Stomp\Value\Uri;
-use FuseSource\Stomp\Value\Frame;
-use FuseSource\Stomp\Event\SystemEventType;
-use FuseSource\Stomp\Event\FrameEvent;
-use FuseSource\Stomp\Event\ErrorEvent;
+namespace Stomp;
+
+use Stomp\Exception\FrameException;
+use Stomp\Exception\ReceiptException;
+use Stomp\Exception\TransportException;
+use Stomp\Value\Uri;
+use Stomp\Value\Frame;
+use Stomp\Event\SystemEventType;
+use Stomp\Event\FrameEvent;
+use Stomp\Event\ErrorEvent;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\Event;
