@@ -22,12 +22,27 @@
             "homepage": "http://www.monofone.de"
         }
     ],
+    "repositories": [
+        {
+            "type": "package",
+            "package": {
+                "name": "maxbeutel/node-stomp-server",
+                "version": "0.0.0",
+                "source": {
+                    "url": "git://github.com/maxbeutel/node-stomp-server.git",
+                    "type": "git",
+                    "reference": "master"
+                }
+            }
+        }
+    ],
     "require": {
         "php": ">=5.4.0",
         "ext-libevent": ">=0.0.4",
         "symfony/class-loader": "v2.0.12",
         "symfony/event-dispatcher": "v2.0.12",
-        "monolog/monolog": "v1.0.2"
+        "monolog/monolog": "v1.0.2",
+        "maxbeutel/node-stomp-server": "*"
     },
     "autoload": {
         "psr-0": {
