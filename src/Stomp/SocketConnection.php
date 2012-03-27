@@ -143,11 +143,11 @@ class SocketConnection
 		$this->connect();
 	}
 
-	public function write($string)
+	public function write($string, $force = false)
 	{
 		$success = (bool) @fwrite($this->socket, $string, strlen($string));
 
-		if (!$success) {
+		if (!$force && !$success) {
 			$this->logger->warn('Could not write string to socket, trying to reconnect', ['string' => $string]);
 
 			$this->open();

@@ -106,20 +106,20 @@ class StompClient
 		$this->dispatcher = $dispatcher;
 	}
 
-	protected function writeFrame(Frame $frame)
+	protected function writeFrame(Frame $frame, $force = false)
 	{
 		$data = (string) $frame;
 
 		$this->logger->debug('Writing frame data', array('data' => $data));
 
 		try {
-			$this->socketConnection->write($data);
+			$this->socketConnection->write($data, $force);
 		} catch (ConnectionException $e) {
 			$this->breakEventLoop();
 			throw $e;
 		}
 
-		if ($frame->waitForReceipt()) {
+		if (!$force && $frame->waitForReceipt()) {
 			$this->logger->debug('Waiting for frame receipt');
 
 			$listener = function(FrameEvent $event) use($frame, &$listener) {
@@ -399,7 +399,13 @@ class StompClient
 			$headers['client-id'] = $this->options['clientId'];
 		}
 
-		$this->writeFrame(Frame::createNew('DISCONNECT', $headers));
+		try {
+			$this->writeFrame(Frame::createNew('DISCONNECT', $headers), true);
+		} catch (ConnectionException $e) {
+			// swallow, we´re in shutdown mode anyway so if server has gone away
+			// we cant do anything meaningful anyway
+		}
+
 		$this->socketConnection->close();
 
 		$this->connected = false;
