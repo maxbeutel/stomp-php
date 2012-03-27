@@ -40,8 +40,54 @@ class FrameTest extends PHPUnit_Framework_TestCase
 		$this->assertArrayHasKey('receipt', $frame->getHeaders());
 	}
 
-	public function testUnserializeFromInvalidData()
+	public function testUnserializeFromInvalidData_1()
 	{
+		$this->setExpectedException('InvalidArgumentException', 'Invalid data given');
+
 		$frame = Frame::unserializeFrom(null);
+	}
+
+	public function testUnserializeFromInvalidData_2()
+	{
+		$this->setExpectedException('InvalidArgumentException', 'Invalid data given');
+
+		$frame = Frame::unserializeFrom(' ');
+	}
+
+	public function testUnserializeFromInvalidData_3()
+	{
+		$this->setExpectedException('InvalidArgumentException', 'Invalid data given');
+
+		$frame = Frame::unserializeFrom("\n   ");
+	}
+
+	public function testUnserializeFrom()
+	{
+		$data = 'SEND
+destination:/queue/a
+content-type:text/plain
+
+hello queue a';
+
+		$frame = Frame::unserializeFrom($data);
+		$this->assertSame('SEND', $frame->getCommand());
+		$this->assertSame('/queue/a', $frame->getEventName());
+		$this->assertFalse($frame->waitForReceipt());
+		$this->assertSame('hello queue a', $frame->getBody());
+		$this->assertSame(['destination' => '/queue/a', 'content-type' => 'text/plain'], $frame->getHeaders());
+	}
+
+	public function testUnserializeFromWithoutBody()
+	{
+		$data = 'SEND
+destination:/queue/a
+content-type:text/plain';
+
+		$frame = Frame::unserializeFrom($data);
+		$this->assertSame('SEND', $frame->getCommand());
+		$this->assertSame('/queue/a', $frame->getEventName());
+		$this->assertFalse($frame->waitForReceipt());
+		$this->assertNull($frame->getBody());
+		$this->assertSame(['destination' => '/queue/a', 'content-type' => 'text/plain'], $frame->getHeaders());
 	}
 }

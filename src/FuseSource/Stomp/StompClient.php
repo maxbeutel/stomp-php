@@ -154,8 +154,12 @@ class StompClient
 
 			$this->logger->debug('Read callback triggered', ['data' => $data]);
 
-			$frame = Frame::unserializeFrom($data);
-			$this->dispatcher->dispatch($frame->getEventName(), new FrameEvent($this, $frame));
+			try {
+				$frame = Frame::unserializeFrom($data);
+				$this->dispatcher->dispatch($frame->getEventName(), new FrameEvent($this, $frame));
+			} catch (InvalidArgumentException $e) {
+				$this->dispatcher->dispatch(SystemEventType::TRANSPORT_ERROR, new ErrorEvent($e->getMessage()));
+			}
 		};
 
 		$errorCallback = function($buf, $code, $resource) {
