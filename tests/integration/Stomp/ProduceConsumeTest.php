@@ -57,6 +57,7 @@ class ProduceConsumeTest extends PHPUnit_Framework_TestCase
 
 	public function testSomething()
 	{
+		$this->assertTrue(false);
 		#$this->startBackgroundStompListener();
 		#$this->assertTrue(bla(1));
 		#$this->assertFalse(bla(2));
