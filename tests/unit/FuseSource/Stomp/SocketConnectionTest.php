@@ -1,13 +1,8 @@
 <?php
 
-namespace FuseSource\Stomp;
-
-use PHPUnit_Framework_TestCase;
-
 /**
  *
- * Copyright 2005-2006 The Apache Software Foundation
- * Source Code modified 2012 by Max Beutel <me@maxbeutel.de>
+ * Copyright 2012 Max Beutel <me@maxbeutel.de>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +17,10 @@ use PHPUnit_Framework_TestCase;
  * limitations under the License.
  *
  */
+
+namespace FuseSource\Stomp;
+
+use PHPUnit_Framework_TestCase;
 
 // dummy class extending regular SocketConnection in order to test some internal stuff
 // without the hassle of setting up a socket connection

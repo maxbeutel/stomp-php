@@ -1,14 +1,8 @@
 <?php
 
-namespace FuseSource\Stomp\Exception;
-
-use Exception;
-use FuseSource\Stomp\Value\Frame;
-
 /**
  *
- * Copyright 2005-2006 The Apache Software Foundation
- * Source Code modified 2012 by Max Beutel <me@maxbeutel.de>
+ * Copyright 2012 Max Beutel <me@maxbeutel.de>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +17,11 @@ use FuseSource\Stomp\Value\Frame;
  * limitations under the License.
  *
  */
+
+namespace FuseSource\Stomp\Exception;
+
+use Exception;
+use FuseSource\Stomp\Value\Frame;
 
 class FrameException extends Exception implements ExceptionInterface
 {

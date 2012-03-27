@@ -1,13 +1,9 @@
 <?php
 
-require_once __DIR__ . '/vendor/.composer/autoload.php';
-
-use Symfony\Component\ClassLoader\UniversalClassLoader;
-
 /**
  *
  * Copyright 2005-2006 The Apache Software Foundation
- * Source Code modified 2012 by Max Beutel <me@maxbeutel.de>
+ * Copyright 2012 Max Beutel <me@maxbeutel.de>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +16,12 @@ use Symfony\Component\ClassLoader\UniversalClassLoader;
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
+
+require_once __DIR__ . '/vendor/.composer/autoload.php';
+
+use Symfony\Component\ClassLoader\UniversalClassLoader;
 
 $loader = new UniversalClassLoader();
 $loader->register();
