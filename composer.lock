@@ -3,7 +3,7 @@
     "packages": [
         {
             "package": "maxbeutel/node-stomp-server",
-            "version": "1.0.0"
+            "version": "0.0.0"
         },
         {
             "package": "monolog/monolog",
