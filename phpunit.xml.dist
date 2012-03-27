@@ -13,8 +13,8 @@
     syntaxCheck                 = "true"
     bootstrap                   = "tests/bootstrap.php" >
     <testsuites>
-        <testsuite name="stomp-php Test Suite">
-            <directory>./tests/</directory>
+        <testsuite name="stomp-php Unit Test Suite">
+            <directory>./tests/unit/</directory>
         </testsuite>
     </testsuites>
 </phpunit>
