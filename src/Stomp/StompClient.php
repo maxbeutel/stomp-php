@@ -67,33 +67,43 @@ class StompClient
 			'writeTimeout'			=> 10,
 			'retryAttemptsPerUri'	=> 10,
 			'logLevel'				=> Logger::DEBUG,
+			'loggerInstance'		=> null,
+			'dispatcherInstance'	=> null,
 		];
 
 		$this->options = array_merge($defaultOptions, $options);
 
-		$this->dispatcher = new EventDispatcher();
+		if ($this->options['dispatcherInstance']) {
+			$this->setDispatcher($this->options['dispatcherInstance']);
+		} else {
+			$this->setDispatcher(new EventDispatcher());
+		}
 
-		$this->logger = new Logger('StompClient');
-		$this->logger->pushHandler(new StreamHandler('php://stdout', $this->options['logLevel']));
+		if ($this->options['loggerInstance']) {
+			$this->setLogger($this->options['loggerInstance']);
+		} else {
+			$logger = new Logger('StompClient');
+			$logger->pushHandler(new StreamHandler('php://stdout', $this->options['logLevel']));
+
+			$this->setLogger($logger);
+		}
 
 		$this->socketConnection = new SocketConnection($uriString, $this->options['retryAttemptsPerUri'], $this->options['connectTimeout'], $this->logger);
-	}
-
-	public function setLogger(Logger $logger)
-	{
-		$this->logger = $logger;
-		return $this;
-	}
-
-	public function setDispatcher(EventDispatcherInterface $dispatcher)
-	{
-		$this->dispatcher = $dispatcher;
-		return $this;
 	}
 
 	public function getSessionId()
 	{
 		return $this->sessionId;
+	}
+
+	protected function setLogger(Logger $logger)
+	{
+		$this->logger = $logger;
+	}
+
+	protected function setDispatcher(EventDispatcherInterface $dispatcher)
+	{
+		$this->dispatcher = $dispatcher;
 	}
 
 	protected function writeFrame(Frame $frame)
@@ -359,7 +369,7 @@ class StompClient
 			event_base_loopbreak($this->base);
 		}
 
-		unset($this->base);
+		$this->base = null;
 	}
 
 	public function disconnect()

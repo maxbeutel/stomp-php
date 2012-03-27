@@ -20,4 +20,6 @@
 
 error_reporting(E_ALL);
 
+define('STOMP_TEST_DIR', __DIR__);
+
 require_once __DIR__ . '/../autoload.php';

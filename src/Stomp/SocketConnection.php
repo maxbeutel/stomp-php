@@ -132,7 +132,7 @@ class SocketConnection
 				$this->close();
 			}
 		} catch (BadMethodCallException $e) {
-			throw new ConnectionException(sprintf('Could not connect to any broker', $connectionAttempts), $e->getCode(), $e);
+			throw new ConnectionException('Could not connect to any broker', $e->getCode(), $e);
 		} catch (InvalidArgumentException $e) {
 			throw new ConnectionException('Attempted to use invalid URI', $e->getCode(), $e);
 		}
