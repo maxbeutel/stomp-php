@@ -30,6 +30,7 @@ class FrameEventTest extends PHPUnit_Framework_TestCase
 	{
 		$this->connectionMock = $this->getMockBuilder('FuseSource\Stomp\StompClient')
 									 ->disableOriginalConstructor()
+									 ->setMethods(['connect', 'disconnect'])
 									 ->getMock();
 
 		$this->frameMock = $this->getMockBuilder('FuseSource\Stomp\Value\Frame')
