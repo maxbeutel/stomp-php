@@ -1,6 +1,5 @@
 This is a modified version of http://stomp.fusesource.org/documentation/php/ with refactored structure using libevent for receiving frames from STOMP server.
 
-[![Build Status](https://secure.travis-ci.org/maxbeutel/stomp-php.png)](http://travis-ci.org/maxbeutel/stomp-php)
 
 Original authors:
 
