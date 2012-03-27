@@ -45,6 +45,23 @@ class ProduceConsumeTest extends PHPUnit_Framework_TestCase
 		$this->stopStompServer();
 	}
 
+	private function startStompConsumer()
+	{
+
+	}
+
+	private function stopStompConsumer()
+	{
+
+	}
+
+	public function testSomething()
+	{
+		#$this->startBackgroundStompListener();
+		#$this->assertTrue(bla(1));
+		#$this->assertFalse(bla(2));
+	}
+
 	/**
 	 * @group integration
 	 * @large
@@ -68,7 +85,7 @@ class ProduceConsumeTest extends PHPUnit_Framework_TestCase
 	/**
 	 * @group integration
 	 * @large
-	 */
+	 *//*
 	public function testProduceConsume()
 	{
 		$client = new StompClient('tcp://localhost:61613', ['loggerInstance' => $this->loggerMock]);
@@ -83,5 +100,5 @@ class ProduceConsumeTest extends PHPUnit_Framework_TestCase
 		$client->send('/queue/test', 'message 1');
 
 		$client->listen();
-	}
+	}*/
 }
