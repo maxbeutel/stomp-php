@@ -26,7 +26,7 @@ namespace Stomp;
 
 use Stomp\Exception\FrameException;
 use Stomp\Exception\ReceiptException;
-use Stomp\Exception\TransportException;
+use Stomp\Exception\ConnectionException;
 use Stomp\Value\Uri;
 use Stomp\Value\Frame;
 use Stomp\Event\SystemEventType;
@@ -112,7 +112,12 @@ class StompClient
 
 		$this->logger->debug('Writing frame data', array('data' => $data));
 
-		$this->socketConnection->write($data);
+		try {
+			$this->socketConnection->write($data);
+		} catch (ConnectionException $e) {
+			$this->breakEventLoop();
+			throw $e;
+		}
 
 		if ($frame->waitForReceipt()) {
 			$this->logger->debug('Waiting for frame receipt');
@@ -127,6 +132,7 @@ class StompClient
 				$this->logger->debug('Got receipt', ['expected' => $expected, 'actual' => $actual]);
 
 				if ($expected !== $actual) {
+					$this->breakEventLoop();
 					throw new ReceiptException(sprintf('Expected receipt "%s" but got "%s"', $expected, $actual));
 				}
 			};
@@ -159,11 +165,16 @@ class StompClient
 
 			try {
 				$frame = Frame::unserializeFrom($data);
+
+				if ($frame->isError()) {
+					$this->breakEventLoop();
+					throw new FrameException('Frame error', 0, null, $frame);
+				}
+
 				$this->dispatcher->dispatch($frame->getEventName(), new FrameEvent($this, $frame));
 			} catch (InvalidArgumentException $e) {
-				// @TODO this is actually a frame error?
-				// dispatch frame error here, make frame object optional, remove transport error alltogether
-				$this->dispatcher->dispatch(SystemEventType::TRANSPORT_ERROR, new ErrorEvent($e->getMessage()));
+				$this->breakEventLoop();
+				throw new FrameException('Invalid frame data', $e->getCode(), $e);
 			}
 		};
 
@@ -193,10 +204,12 @@ class StompClient
 	public function subscribe($eventName, callable $listener)
 	{
 		if (!$this->connected) {
+			$this->breakEventLoop();
 			throw new BadMethodCallException('Cant subscribe before connecting');
 		}
 
 		if (!preg_match('#^\/(queue|topic|temp-queue|temp-topic)\/#i', $eventName)) {
+			$this->breakEventLoop();
 			throw new InvalidArgumentException(sprintf('Event name must begin with one of /queue /topic /temp-queue /temp-topic, got "%s"', $eventName));
 		}
 
@@ -267,25 +280,15 @@ class StompClient
 	public function connect()
 	{
 		$this->logger->info('About to open socket and listen to socket connection');
-		$this->socketConnection->open();
 
-		$this->dispatcher->addListener(SystemEventType::FRAME_ERROR, function(FrameEvent $event) {
-			$this->logger->err('Got frame error');
-
+		try {
+			$this->socketConnection->open();
+		} catch (ConnectionException $e) {
 			$this->breakEventLoop();
+			throw $e;
+		}
 
-			throw new FrameException('Frame error', 0, null, $event->getFrame());
-		});
-
-		$this->dispatcher->addListener(SystemEventType::TRANSPORT_ERROR, function(ErrorEvent $event) {
-			$this->logger->err('Got transport error');
-
-			$this->breakEventLoop();
-
-			throw new TransportException($event->getMessage());
-		});
-
-		$this->dispatcher->addListener(SystemEventType::FRAME_CONNECTED, function(FrameEvent $event) {
+		$connectedCallback = function(FrameEvent $event) {
 			$this->sessionId = $event->getFrame()->getHeaders()['session'];
 
 			$this->logger->info('Successfully connected to server', ['sessionId' => $this->sessionId]);
@@ -293,7 +296,10 @@ class StompClient
 			$this->breakEventLoop();
 
 			$this->connected = true;
-		});
+		};
+
+		$this->dispatcher->removeListener(SystemEventType::FRAME_CONNECTED, $connectedCallback);
+		$this->dispatcher->addListener(SystemEventType::FRAME_CONNECTED, $connectedCallback);
 
 		$connectionFrame = Frame::createNew('CONNECT', ['login' => $this->options['username'], 'passcode' => $this->options['password']]);
 		$this->writeFrame($connectionFrame);

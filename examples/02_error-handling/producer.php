@@ -23,7 +23,6 @@ require_once __DIR__ . '/../../autoload.php';
 use Stomp\StompClient;
 use Stomp\Exception\FrameException;
 use Stomp\Exception\ReceiptException;
-use Stomp\Exception\TransportException;
 use Stomp\Exception\ConnectionException;
 
 try {
@@ -38,8 +37,6 @@ try {
 } catch (ReceiptException $e) {
 	// only relevant for sync connections
 	// occurs when a receipt sent from the server did not match the expected message id
-} catch (TransportException $e) {
-	// something went wrong while reading/writing to the socket
 } catch (FrameException $e) {
 	// this exception is thrown when some unexpected/unknown frame type was encountered
 } catch (ConnectionException $e) {

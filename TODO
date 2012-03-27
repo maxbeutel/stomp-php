@@ -1,7 +1,6 @@
 - improve transaction handling, return transaction id on begin and/or dont require to specify transaction id in send call
 - improve unsubscribe logic as client code could remove system event listener
 - find a good way to test produce/consume logic
-- catch connection exception on socketConnection->write() and rethrow with FrameException?
 - when reconnected, the libevent socket must be exchanged/event loop must be restarted with new socket!
 - update README and provide some documentation and install guide via composer
 - investigate exceptions thrown while running examples

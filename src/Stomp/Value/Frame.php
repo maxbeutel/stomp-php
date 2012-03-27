@@ -124,6 +124,11 @@ class Frame
 		return $this->waitForReceipt;
 	}
 
+	public function isError()
+	{
+		return $this->getCommand() === 'ERROR';
+	}
+
 	public function __toString()
 	{
 		$data = $this->command . "\n";

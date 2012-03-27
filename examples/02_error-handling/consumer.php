@@ -24,7 +24,6 @@ use Stomp\StompClient;
 use Stomp\Event\FrameEvent;
 use Stomp\Exception\FrameException;
 use Stomp\Exception\ReceiptException;
-use Stomp\Exception\TransportException;
 use Stomp\Exception\ConnectionException;
 
 // NOTE: the event loop is exited when an exception is thrown from the client
@@ -44,8 +43,6 @@ try {
 } catch (ReceiptException $e) {
 	// only relevant for sync connections
 	// occurs when a receipt sent from the server did not match the expected message id
-} catch (TransportException $e) {
-	// something went wrong while reading/writing to the socket
 } catch (FrameException $e) {
 	// this exception is thrown when some unexpected/unknown frame type was encountered
 } catch (ConnectionException $e) {

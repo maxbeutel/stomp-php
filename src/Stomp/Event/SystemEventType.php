@@ -27,6 +27,4 @@ class SystemEventType
 	const FRAME_ERROR = 'error';
 
 	const FRAME_RECEIPT = 'receipt';
-
-	const TRANSPORT_ERROR = 'transportError';
 }
