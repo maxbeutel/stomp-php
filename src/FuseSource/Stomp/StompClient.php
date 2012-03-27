@@ -101,7 +101,7 @@ class StompClient
 
 	protected function openSocket()
 	{
-		$this->socket = $this->uriManager->openSocketToUri();
+		$this->socket = $this->uriManager->openSocketToBroker();
 	}
 
 	protected function writeFrame(Frame $frame)
