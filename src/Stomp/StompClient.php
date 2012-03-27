@@ -123,7 +123,7 @@ class StompClient
 			$this->logger->debug('Waiting for frame receipt');
 
 			$listener = function(FrameEvent $event) use($frame, &$listener) {
-				$this->unsubscribe(SystemEventType::FRAME_RECEIPT, $listener);
+				$this->dispatcher->removeListener(SystemEventType::FRAME_RECEIPT, $listener);
 				$this->breakEventLoop();
 
 				$expected = $frame->getHeaders()['receipt'];
@@ -239,21 +239,29 @@ class StompClient
 
 	public function unsubscribe($eventName, callable $listener)
 	{
+		if (!$this->connected) {
+			$this->breakEventLoop();
+			throw new BadMethodCallException('Cant usubscribe before connecting');
+		}
+
+		if (!preg_match('#^\/(queue|topic|temp-queue|temp-topic)\/#i', $eventName)) {
+			$this->breakEventLoop();
+			throw new InvalidArgumentException(sprintf('Event name must begin with one of /queue /topic /temp-queue /temp-topic, got "%s"', $eventName));
+		}
+
 		$this->dispatcher->removeListener($eventName, $listener);
 
-		if (preg_match('#^\/(queue|topic|temp-queue|temp-topic)\/#i', $eventName)) {
-			foreach ($this->subscribedEventNames as $theEventName) {
-				if ($theEventName !== $eventName) {
-					continue;
-				}
-
-				$this->logger->debug('Sending unsubscribe frame', ['eventName' => $eventName]);
-
-				$frame = Frame::createNew('UNSUBSCRIBE', ['destination' => $eventName]);
-				$this->writeFrame($frame);
-
-				unset($this->subscribedEventNames[array_search($eventName, $this->subscribedEventNames, true)]);
+		foreach ($this->subscribedEventNames as $theEventName) {
+			if ($theEventName !== $eventName) {
+				continue;
 			}
+
+			$this->logger->debug('Sending unsubscribe frame', ['eventName' => $eventName]);
+
+			$frame = Frame::createNew('UNSUBSCRIBE', ['destination' => $eventName]);
+			$this->writeFrame($frame);
+
+			unset($this->subscribedEventNames[array_search($eventName, $this->subscribedEventNames, true)]);
 		}
 
 		$this->logger->debug('Unsubscribed', ['eventName' => $eventName]);
