@@ -8,5 +8,6 @@ script:
   - php composer.phar validate
 
 before_script:
+  - ./build/bin/install-pecl-libevent.sh
   - wget http://getcomposer.org/composer.phar
   - php composer.phar install
