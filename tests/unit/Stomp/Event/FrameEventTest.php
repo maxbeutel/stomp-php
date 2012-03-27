@@ -30,7 +30,7 @@ class FrameEventTest extends PHPUnit_Framework_TestCase
 	{
 		$this->connectionMock = $this->getMockBuilder('Stomp\StompClient')
 									 ->disableOriginalConstructor()
-									 // hack - mock only certain methods as PHPUnit cant cope with callable typehint yet
+									 // hack: mock only certain methods as PHPUnit cant cope with callable typehint yet
 									 ->setMethods(['connect', 'disconnect'])
 									 ->getMock();
 
