@@ -106,20 +106,20 @@ class StompClient
 		$this->dispatcher = $dispatcher;
 	}
 
-	protected function writeFrame(Frame $frame, $force = false)
+	protected function writeFrame(Frame $frame)
 	{
 		$data = (string) $frame;
 
 		$this->logger->debug('Writing frame data', array('data' => $data));
 
 		try {
-			$this->socketConnection->write($data, $force);
+			$this->socketConnection->write($data);
 		} catch (ConnectionException $e) {
 			$this->breakEventLoop();
 			throw $e;
 		}
 
-		if (!$force && $frame->waitForReceipt()) {
+		if ($frame->waitForReceipt()) {
 			$this->logger->debug('Waiting for frame receipt');
 
 			$listener = function(FrameEvent $event) use($frame, &$listener) {
@@ -145,21 +145,8 @@ class StompClient
 
 	protected function startEventLoop()
 	{
-		$readCallback = function($buf, $arg) {
-			$readLength = 1024;
-			$data = '';
-			$end = false;
-
-			do {
-				$data .= event_buffer_read($buf, $readLength);
-
-				if (strpos($data, "\x00") !== false) {
-					$end = true;
-					$data = rtrim($data, "\n");
-				}
-
-				$dataLength = strlen($data);
-			} while ($dataLength < 2 || $end == false);
+		$readCallback = function($socket, $what) {
+			$data = $this->socketConnection->read(function($chr) { return $chr ===  "\x00"; });
 
 			$this->logger->debug('Read callback triggered', ['data' => $data]);
 
@@ -178,25 +165,15 @@ class StompClient
 			}
 		};
 
-		$errorCallback = function($buf, $errorCode, $resource) {
-			$this->logger->err('Error callback triggered, trying to reconnect', ['errorCode' => $errorCode]);
-
-			// we got an libevent error
-			// break current event loop, try to reconnect and eventually fail with a ConnectionException
-			$this->breakEventLoop();
-			$this->connect();
-			$this->startEventLoop();
-		};
 
 		$this->logger->info('Starting event loop');
 
 		$this->base = event_base_new();
-		$eb = event_buffer_new($this->socketConnection->getRawSocket(), $readCallback, NULL, $errorCallback, $this->base);
 
-		event_buffer_timeout_set($eb, $this->options['readTimeout'], $this->options['writeTimeout']);
-
-		event_buffer_base_set($eb, $this->base);
-		event_buffer_enable($eb, EV_READ);
+		$event = event_new();
+		event_set($event, $this->socketConnection->getRawSocket(), EV_READ | EV_PERSIST, $readCallback);
+		event_base_set($event, $this->base);
+		event_add($event);
 
 		event_base_loop($this->base);
 	}
@@ -399,12 +376,7 @@ class StompClient
 			$headers['client-id'] = $this->options['clientId'];
 		}
 
-		try {
-			$this->writeFrame(Frame::createNew('DISCONNECT', $headers), true);
-		} catch (ConnectionException $e) {
-			// swallow, we´re in shutdown mode anyway so if server has gone away
-			// we cant do anything meaningful anyway
-		}
+		$this->socketConnection->writeUnchecked((string) Frame::createNew('DISCONNECT', $headers));
 
 		$this->socketConnection->close();
 

@@ -143,16 +143,40 @@ class SocketConnection
 		$this->connect();
 	}
 
-	public function write($string, $force = false)
+	public function write($string)
 	{
 		$success = (bool) @fwrite($this->socket, $string, strlen($string));
 
-		if (!$force && !$success) {
+		if (!$success) {
 			$this->logger->warn('Could not write string to socket, trying to reconnect', ['string' => $string]);
 
 			$this->open();
 			$this->write($string);
 		}
+	}
+
+	public function writeUnchecked($string)
+	{
+		@fwrite($this->socket, $string, strlen($string));
+	}
+
+	public function read(callable $endPredicate)
+	{
+		if (!(bool) stream_socket_recvfrom($this->socket, 2, STREAM_PEEK)) {
+			throw new ConnectionException('Unexpected EOF');
+		}
+
+		$data = '';
+
+		while (false !== ($char = fgetc($this->socket))) {
+		    if ($char === "\x00") {
+		    	break;
+		    }
+
+		    $data .= $char;
+		}
+
+		return trim($data, "\n");
 	}
 
 	public function getRawSocket()
