@@ -147,6 +147,8 @@ class ProduceConsumeTest extends PHPUnit_Framework_TestCase
 
 		require_once STOMP_TEST_DIR . '/../examples/03_failover/producer.php';
 
+		sleep(5);
+
 		$this->messageOutputAsserts($this->getStompConsumerOutput());
 	}
 }
