@@ -32,7 +32,6 @@ class SocketConnection
 	protected $uris = [];
 	protected $retryAttemptsPerUri;
 	protected $connectTimeout;
-	protected $streamTimeout;
 	protected $logger;
 
 	protected $options = [];
@@ -41,7 +40,7 @@ class SocketConnection
 	protected $currentUriIndex = 0;
 	protected $currentRetryAttempt = 0;
 
-	public function __construct($uriString, $retryAttemptsPerUri, $connectTimeout, $streamTimeout, Logger $logger)
+	public function __construct($uriString, $retryAttemptsPerUri, $connectTimeout, Logger $logger)
 	{
 		$defaultOptions = [
 			'randomize' => false,
@@ -78,7 +77,6 @@ class SocketConnection
 
         $this->retryAttemptsPerUri = $retryAttemptsPerUri;
         $this->connectTimeout = $connectTimeout;
-        $this->streamTimeout = $streamTimeout;
         $this->options = array_merge($defaultOptions, $options);
         $this->logger = $logger;
 
@@ -119,8 +117,6 @@ class SocketConnection
 				$this->socket = @fsockopen($uri->getHostWithScheme(), $uri->getPort(), $connectionErrorNumber, $connectionError, $this->connectTimeout);
 
 				if (is_resource($this->socket)) {
-					stream_set_timeout($this->socket, $this->streamTimeout);
-
 					$this->logger->info(sprintf('Successfully connected to broker "%s" at attempt %d', $uri, $this->currentRetryAttempt));
 					return;
 				}

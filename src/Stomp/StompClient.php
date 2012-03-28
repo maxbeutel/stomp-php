@@ -63,7 +63,8 @@ class StompClient
 			'prefetchSize'			=> 1,
 			'connectTimeout'		=> 60,
 			'waitForReceipt'		=> false,
-			'streamTimeout'			=> 10,
+			'readTimeout'			=> null,
+			'writeTimeout'			=> 10,
 			'retryAttemptsPerUri'	=> 10,
 			'logLevel'				=> Logger::DEBUG,
 			'loggerInstance'		=> null,
@@ -87,13 +88,7 @@ class StompClient
 			$this->setLogger($logger);
 		}
 
-		$this->socketConnection = new SocketConnection(
-			$uriString,
-			$this->options['retryAttemptsPerUri'],
-			$this->options['connectTimeout'],
-			$this->options['streamTimeout'],
-			$this->logger
-		);
+		$this->socketConnection = new SocketConnection($uriString, $this->options['retryAttemptsPerUri'], $this->options['connectTimeout'], $this->logger);
 	}
 
 	public function getSessionId()
@@ -209,7 +204,7 @@ class StompClient
 
 		// @TODO take timeout in again
 		$eb = event_buffer_new($this->socketConnection->getRawSocket(), $readCallback, NULL, $errorCallback, $this->base);
-		#event_buffer_timeout_set($eb, $this->options['readTimeout'], $this->options['writeTimeout']);
+		event_buffer_timeout_set($eb, $this->options['readTimeout'], $this->options['writeTimeout']);
 		event_buffer_base_set($eb, $this->base);
 		event_buffer_enable($eb, EV_READ);
 
