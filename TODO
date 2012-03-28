@@ -6,3 +6,5 @@
 - move libevent handling to SocketConnection so it doesnt feel dirty anymore when throwing ConnectionException in errorCallback
 - update README and provide some documentation and install guide via composer
 - investigate exceptions thrown while running examples
+- test error handling (make node server throw errors etc.)
+- add unit tests for ALL examples
