@@ -27,6 +27,9 @@ trait StompServerTrait
 	private $stompServerProcess;
 	private $currentServerOutputFile;
 
+	private $stompConsumerProcess;
+	private $currentConsumerOutputFile;
+
 	private function startStompServer()
 	{
 		$this->stopStompServer();
@@ -72,5 +75,51 @@ trait StompServerTrait
 		sleep(1);
 
 		return file_get_contents($this->currentServerOutputFile);
+	}
+
+	private function startStompConsumer($consumer)
+	{
+		$this->stopStompConsumer();
+
+		$this->currentConsumerOutputFile = STOMP_TEST_DIR . '/integration/fixtures/output-files/' . microtime(true) . '-' . md5(uniqid(mt_rand(), true)) . '.consumer';
+
+		$cmd = 'php ' . $consumer;
+
+		$descriptorspec = [
+			0 => ['pipe', 'r'],
+			1 => ['file', $this->currentConsumerOutputFile, 'w'],
+			2 => ['pipe', 'w'],
+		];
+
+		$this->stompConsumerProcess = proc_open($cmd, $descriptorspec, $pipes, sys_get_temp_dir());
+
+		sleep(1);
+	}
+
+	private function stopStompConsumer()
+	{
+		if (is_resource($this->stompConsumerProcess)) {
+			proc_terminate($this->stompConsumerProcess);
+		}
+
+		foreach (glob(STOMP_TEST_DIR . '/integration/fixtures/output-files/*.consumer') as $outputFile) {
+			unlink($outputFile);
+		}
+
+		exec('ps -ef | grep "/consumer*.php" | awk \'{print $2}\' | xargs -r kill 2>&1');
+
+		$this->stompConsumerProcess = $this->currentConsumerOutputFile = null;
+	}
+
+	private function getStompConsumerOutput()
+	{
+		if (!is_file($this->currentConsumerOutputFile)) {
+			return self::$NO_OUTPUT;
+		}
+
+		// hack: not all data might have been written to disk yet
+		sleep(1);
+
+		return file_get_contents($this->currentConsumerOutputFile);
 	}
 }

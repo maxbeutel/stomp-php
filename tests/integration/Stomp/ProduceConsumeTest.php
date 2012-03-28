@@ -29,15 +29,9 @@ class ProduceConsumeTest extends PHPUnit_Framework_TestCase
 {
 	use StompServerTrait;
 
-	private $loggerMock;
-
 	public function setUp()
 	{
 		$this->startStompServer();
-
-		$this->loggerMock = $this->getMockBuilder('Monolog\Logger')
-								 ->disableOriginalConstructor()
-								 ->getMock();
 	}
 
 	public function tearDown()
@@ -46,53 +40,22 @@ class ProduceConsumeTest extends PHPUnit_Framework_TestCase
 		$this->stopStompServer();
 	}
 
-	private $stompConsumerProcess;
-	private $currentConsumerOutputFile;
-
-	private function startStompConsumer($consumer)
+	/**
+	 * @group integration
+	 * @large
+	 */
+	public function testExample_transactions()
 	{
-		$this->stopStompConsumer();
+		$this->startStompConsumer(STOMP_TEST_DIR . '/../examples/01_simple/consumer-transactions.php');
 
-		$this->currentConsumerOutputFile = STOMP_TEST_DIR . '/integration/fixtures/output-files/' . microtime(true) . '-' . md5(uniqid(mt_rand(), true)) . '.consumer';
+		require_once STOMP_TEST_DIR . '/../examples/01_simple/producer-transactions.php';
 
-		$cmd = 'php ' . $consumer;
+		$output = $this->getStompConsumerOutput();
 
-		$descriptorspec = [
-			0 => ['pipe', 'r'],
-			1 => ['file', $this->currentConsumerOutputFile, 'w'],
-			2 => ['pipe', 'w'],
-		];
-
-		$this->stompConsumerProcess = proc_open($cmd, $descriptorspec, $pipes, sys_get_temp_dir());
-
-		sleep(1);
-	}
-
-	private function stopStompConsumer()
-	{
-		if (is_resource($this->stompConsumerProcess)) {
-			proc_terminate($this->stompConsumerProcess);
-		}
-
-		foreach (glob(STOMP_TEST_DIR . '/integration/fixtures/output-files/*.consumer') as $outputFile) {
-			unlink($outputFile);
-		}
-
-		exec('ps -ef | grep "/consumer*.php" | awk \'{print $2}\' | xargs -r kill 2>&1');
-
-		$this->stompConsumerProcess = $this->currentConsumerOutputFile = null;
-	}
-
-	private function getStompConsumerOutput()
-	{
-		if (!is_file($this->currentConsumerOutputFile)) {
-			return self::$NO_OUTPUT;
-		}
-
-		// hack: not all data might have been written to disk yet
-		sleep(1);
-
-		return file_get_contents($this->currentConsumerOutputFile);
+		// skip this for now as the dummy node stomp server doesnt abort transactions
+		//$this->assertNotContains('string(25) "message for transaction 1"', $output);
+		$this->assertContains('string(25) "message for transaction 2"', $output);
+		$this->assertContains('string(33) "another message for transaction 2"', $output);
 	}
 
 	/**
