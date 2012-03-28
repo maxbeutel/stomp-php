@@ -26,7 +26,7 @@ $client = new StompClient('tcp://localhost:61613', ['username' => 'user', 'passw
 $client->connect();
 
 for ($i = 0; $i < 10; $i++) {
-	$client->send('/queue/simple-example/authenticated', 'frob');
+	$client->send('/queue/simple-example/authenticated', 'message ' . ($i + 1));
 }
 
 $client->disconnect();
