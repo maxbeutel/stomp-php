@@ -1,6 +1,8 @@
 - improve transaction handling, return transaction id on begin and/or dont require to specify transaction id in send call
-- find a good way to test produce/consume logic
 - handle exceptions/break event loop logic better... somehow...
-- try to reconnect on socket errors (EOF/could not write/etc)
+	- try to reconnect on socket errors (EOF/could not write/etc)?
+	- general rule: only try all uris on connect, otherwise throw exception and break loop?
+- add ssl support (tests first!)
+- move libevent handling to SocketConnection so it doesnt feel dirty anymore when throwing ConnectionException in errorCallback
 - update README and provide some documentation and install guide via composer
 - investigate exceptions thrown while running examples
