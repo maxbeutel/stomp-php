@@ -34,7 +34,6 @@ class ProduceConsumeTest extends PHPUnit_Framework_TestCase
 	public function setUp()
 	{
 		$this->startStompServer();
-		#$this->startStompConsumer();
 
 		$this->loggerMock = $this->getMockBuilder('Monolog\Logger')
 								 ->disableOriginalConstructor()
@@ -107,6 +106,31 @@ class ProduceConsumeTest extends PHPUnit_Framework_TestCase
 		require_once STOMP_TEST_DIR . '/../examples/01_simple/producer.php';
 
 		$output = $this->getStompConsumerOutput();
+
+		$this->assertContains('string(9) "message 1"', $output);
+		$this->assertContains('string(9) "message 2"', $output);
+		$this->assertContains('string(9) "message 3"', $output);
+		$this->assertContains('string(9) "message 4"', $output);
+		$this->assertContains('string(9) "message 5"', $output);
+		$this->assertContains('string(9) "message 6"', $output);
+		$this->assertContains('string(9) "message 7"', $output);
+		$this->assertContains('string(9) "message 8"', $output);
+		$this->assertContains('string(9) "message 9"', $output);
+		$this->assertContains('string(10) "message 10"', $output);
+	}
+
+	/**
+	 * @group integration
+	 * @large
+	 */
+	public function testExample_persistent()
+	{
+		$this->startStompConsumer(STOMP_TEST_DIR . '/../examples/01_simple/consumer-persistent.php');
+
+		require_once STOMP_TEST_DIR . '/../examples/01_simple/producer-persistent.php';
+
+		$output = $this->getStompConsumerOutput();
+
 		$this->assertContains('string(9) "message 1"', $output);
 		$this->assertContains('string(9) "message 2"', $output);
 		$this->assertContains('string(9) "message 3"', $output);

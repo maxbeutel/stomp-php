@@ -115,7 +115,9 @@ class StompClient
 	{
 		$data = (string) $frame;
 
-		$this->logger->debug('Writing frame data', array('data' => $data));
+		$this->logger->debug('Writing frame data', ['data' => $data]);
+
+$this->startEventLoop(false);
 
 		try {
 			$this->socketConnection->write($data);
@@ -144,48 +146,68 @@ class StompClient
 
 			$this->dispatcher->addListener(SystemEventType::FRAME_RECEIPT, $listener);
 
-			$this->startEventLoop();
+ event_base_loop($this->base);
 		}
 	}
 
-	protected function startEventLoop()
+	protected function startEventLoop($x = true)
 	{
-		$readCallback = function($socket, $what) {
-			try {
-				$data = $this->socketConnection->read(function($char) { return $char ===  "\x00"; });
-			} catch (ConnectionException $e) {
-				$this->breakEventLoop();
-				throw $e;
-			}
+		$readCallback = function($buf, $arg) {
+			$readLength = 1024;
+			$content = '';
+			$end = false;
 
-			$this->logger->debug('Read callback triggered', ['data' => $data]);
+			do {
+				$content .= event_buffer_read($buf, $readLength);
 
-			try {
-				$frame = Frame::unserializeFrom($data);
-
-				if ($frame->isError()) {
-					$this->breakEventLoop();
-					throw new FrameException('Frame error', 0, null, $frame);
+				if (strpos($content, "\x00") !== false) {
+					$end = true;
 				}
 
-				$this->dispatcher->dispatch($frame->getEventName(), new FrameEvent($this, $frame));
+				$dataLength = strlen($content);
+			} while ($dataLength < 2 || $end == false);
+
+			$content = explode(chr(0), $content);
+			$content = array_map('trim', $content);
+			$content = array_filter($content);
+
+			$this->logger->debug('Read callback triggered', ['content' => $content]);
+
+			try {
+				foreach ($content as $data) {
+					$frame = Frame::unserializeFrom($data);
+
+					if ($frame->isError()) {
+						$this->breakEventLoop();
+						throw new FrameException('Frame error', 0, null, $frame);
+					}
+
+					$this->dispatcher->dispatch($frame->getEventName(), new FrameEvent($this, $frame));
+				}
 			} catch (InvalidArgumentException $e) {
 				$this->breakEventLoop();
 				throw new FrameException('Invalid frame data', $e->getCode(), $e);
 			}
 		};
 
+		$errorCallback = function($buf, $code, $resource) {
+			$this->logger->debug('Error callback triggered', ['code' => $code]);
+
+			// @TODO throw ex
+			#$this->dispatcher->dispatch(SystemEventType::TRANSPORT_ERROR, new ErrorEvent(sprintf('Libevent error code %d', $code)));
+		};
 
 		$this->logger->info('Starting event loop');
 
 		$this->base = event_base_new();
 
-		$event = event_new();
-		event_set($event, $this->socketConnection->getRawSocket(), EV_READ | EV_PERSIST, $readCallback);
-		event_base_set($event, $this->base);
-		event_add($event);
+		// @TODO take timeout in again
+		$eb = event_buffer_new($this->socketConnection->getRawSocket(), $readCallback, NULL, $errorCallback, $this->base);
+		#event_buffer_timeout_set($eb, $this->options['readTimeout'], $this->options['writeTimeout']);
+		event_buffer_base_set($eb, $this->base);
+		event_buffer_enable($eb, EV_READ);
 
-		event_base_loop($this->base);
+		if ($x) event_base_loop($this->base);
 	}
 
 	public function subscribe($eventName, callable $listener)

@@ -26,7 +26,7 @@ use Stomp\Event\FrameEvent;
 $client = new StompClient('tcp://localhost:61613', ['waitForReceipt' => true]);
 $client->connect();
 
-$client->subscribe('/queue/simple-example', function(FrameEvent $event) {
+$client->subscribe('/queue/simple-example/sync', function(FrameEvent $event) {
     $frameBody  = $event->getFrame()->getBody();
 
     var_dump($frameBody);

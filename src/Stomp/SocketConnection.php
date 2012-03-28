@@ -178,25 +178,6 @@ class SocketConnection
 		return true;
 	}
 
-	public function read(callable $endPredicate)
-	{
-		if (!(bool) @stream_socket_recvfrom($this->socket, 2, STREAM_PEEK)) {
-			throw new ConnectionException('Unexpected EOF');
-		}
-
-		$data = '';
-
-		while (false !== ($char = @fgetc($this->socket))) {
-		    if ($endPredicate($char) === true) {
-		    	break;
-		    }
-
-		    $data .= $char;
-		}
-
-		return trim($data, "\n");
-	}
-
 	public function getRawSocket()
 	{
 		return $this->socket;
