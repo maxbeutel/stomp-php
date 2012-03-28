@@ -34,7 +34,7 @@ class ProduceConsumeTest extends PHPUnit_Framework_TestCase
 	public function setUp()
 	{
 		$this->startStompServer();
-		$this->startStompConsumer();
+		#$this->startStompConsumer();
 
 		$this->loggerMock = $this->getMockBuilder('Monolog\Logger')
 								 ->disableOriginalConstructor()
@@ -50,13 +50,13 @@ class ProduceConsumeTest extends PHPUnit_Framework_TestCase
 	private $stompConsumerProcess;
 	private $currentConsumerOutputFile;
 
-	private function startStompConsumer()
+	private function startStompConsumer($consumer)
 	{
 		$this->stopStompConsumer();
 
 		$this->currentConsumerOutputFile = STOMP_TEST_DIR . '/integration/fixtures/output-files/' . microtime(true) . '-' . md5(uniqid(mt_rand(), true)) . '.consumer';
 
-		$cmd = 'php ' . STOMP_TEST_DIR . '/../examples/01_simple/consumer.php';
+		$cmd = 'php ' . $consumer;
 
 		$descriptorspec = [
 			0 => ['pipe', 'r'],
@@ -72,14 +72,14 @@ class ProduceConsumeTest extends PHPUnit_Framework_TestCase
 	private function stopStompConsumer()
 	{
 		if (is_resource($this->stompConsumerProcess)) {
-		#	proc_close($this->stompConsumerProcess);
+			proc_terminate($this->stompConsumerProcess);
 		}
 
 		foreach (glob(STOMP_TEST_DIR . '/integration/fixtures/output-files/*.consumer') as $outputFile) {
 			unlink($outputFile);
 		}
 
-		exec('ps -ef | grep "/consumer.php" | awk \'{print $2}\' | xargs -r kill 2>&1');
+		exec('ps -ef | grep "/consumer*.php" | awk \'{print $2}\' | xargs -r kill 2>&1');
 
 		$this->stompConsumerProcess = $this->currentConsumerOutputFile = null;
 	}
@@ -96,58 +96,50 @@ class ProduceConsumeTest extends PHPUnit_Framework_TestCase
 		return file_get_contents($this->currentConsumerOutputFile);
 	}
 
-	public function testSomething()
+	/**
+	 * @group integration
+	 * @large
+	 */
+	public function testExample_simple()
 	{
-$client = new StompClient('tcp://localhost:61613');
-$client->connect();
+		$this->startStompConsumer(STOMP_TEST_DIR . '/../examples/01_simple/consumer.php');
 
-for ($i = 0; $i < 10; $i++) {
-	$client->send('/queue/simple-example', 'message ' . ($i + 1));
-}
+		require_once STOMP_TEST_DIR . '/../examples/01_simple/producer.php';
 
-$client->disconnect();
-
-var_dump($this->getStompConsumerOutput());
-
+		$output = $this->getStompConsumerOutput();
+		$this->assertContains('string(9) "message 1"', $output);
+		$this->assertContains('string(9) "message 2"', $output);
+		$this->assertContains('string(9) "message 3"', $output);
+		$this->assertContains('string(9) "message 4"', $output);
+		$this->assertContains('string(9) "message 5"', $output);
+		$this->assertContains('string(9) "message 6"', $output);
+		$this->assertContains('string(9) "message 7"', $output);
+		$this->assertContains('string(9) "message 8"', $output);
+		$this->assertContains('string(9) "message 9"', $output);
+		$this->assertContains('string(10) "message 10"', $output);
 	}
 
 	/**
 	 * @group integration
 	 * @large
 	 */
-	/*public function testProduceConsumeSnyc()
+	public function testExample_sync()
 	{
-		$client = new StompClient('tcp://localhost:61613', ['loggerInstance' => $this->loggerMock, 'waitForReceipt' => true]);
-		$client->connect();
+		$this->startStompConsumer(STOMP_TEST_DIR . '/../examples/01_simple/consumer-sync.php');
 
-		$client->subscribe('/queue/test', function(FrameEvent $event) {
-			$event->getConnection()->ack($event->getFrame());
-			$event->getConnection()->disconnect();
-			$this->assertSame('message 1', $event->getFrame()->getBody());
-		});
+		require_once STOMP_TEST_DIR . '/../examples/01_simple/producer-sync.php';
 
-		$client->send('/queue/test', 'message 1');
+		$output = $this->getStompConsumerOutput();
 
-		$client->listen();
-	}*/
-
-	/**
-	 * @group integration
-	 * @large
-	 *//*
-	public function testProduceConsume()
-	{
-		$client = new StompClient('tcp://localhost:61613', ['loggerInstance' => $this->loggerMock]);
-		$client->connect();
-
-		$client->subscribe('/queue/test', function(FrameEvent $event) {
-			$event->getConnection()->ack($event->getFrame());
-			$event->getConnection()->disconnect();
-			$this->assertSame('message 1', $event->getFrame()->getBody());
-		});
-
-		$client->send('/queue/test', 'message 1');
-
-		$client->listen();
-	}*/
+		$this->assertContains('string(9) "message 1"', $output);
+		$this->assertContains('string(9) "message 2"', $output);
+		$this->assertContains('string(9) "message 3"', $output);
+		$this->assertContains('string(9) "message 4"', $output);
+		$this->assertContains('string(9) "message 5"', $output);
+		$this->assertContains('string(9) "message 6"', $output);
+		$this->assertContains('string(9) "message 7"', $output);
+		$this->assertContains('string(9) "message 8"', $output);
+		$this->assertContains('string(9) "message 9"', $output);
+		$this->assertContains('string(10) "message 10"', $output);
+	}
 }
