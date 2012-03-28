@@ -1,3 +1,4 @@
 nbproject
 composer.phar
 vendor/
+tests/integration/fixtures/output-files/*.*
