@@ -20,6 +20,8 @@
 
 error_reporting(E_ALL);
 
+require_once __DIR__ . '/../autoload.php';
+
 define('STOMP_TEST_DIR', __DIR__);
 
-require_once __DIR__ . '/../autoload.php';
+define('STOMP_TEST_INTEGRATION_LOG_LEVEL', Monolog\Logger::ERROR);

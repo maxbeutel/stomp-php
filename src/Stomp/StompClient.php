@@ -66,7 +66,8 @@ class StompClient
 			'readTimeout'			=> null,
 			'writeTimeout'			=> 10,
 			'retryAttemptsPerUri'	=> 10,
-			'logLevel'				=> Logger::WARNING,
+			// this is a bit of a hack for macking integration tests shut up
+			'logLevel'				=> defined('STOMP_TEST_INTEGRATION_LOG_LEVEL') ? STOMP_TEST_INTEGRATION_LOG_LEVEL : Logger::WARNING,
 			'loggerInstance'		=> null,
 			'dispatcherInstance'	=> null,
 		];

@@ -30,9 +30,9 @@ $client->connect();
 $client->beginTransaction('transaction_1');
 
 $client->subscribe('/queue/simple-example/transactions', function(FrameEvent $event) {
-	static $messagesCount = 0;
+    static $messagesCount = 0;
 
-	$messagesCount++;
+    $messagesCount++;
 
     $frameBody  = $event->getFrame()->getBody();
 

@@ -23,10 +23,10 @@ require_once __DIR__ . '/../../autoload.php';
 use Stomp\StompClient;
 use Stomp\Event\FrameEvent;
 
-$con = new StompClient('failover://(tcp://localhost:61613,tcp://localhost:61612)');
+$con = new StompClient('failover://(tcp://localhost:1234,tcp://localhost:61613)');
 $con->connect();
 
-$con->subscribe('/queue/simple-example/persistent', function (FrameEvent $event) {
+$con->subscribe('/queue/simple-example/failover', function (FrameEvent $event) {
     $frameBody  = $event->getFrame()->getBody();
 
     var_dump($frameBody);
