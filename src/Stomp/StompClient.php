@@ -66,7 +66,7 @@ class StompClient
 			'readTimeout'			=> null,
 			'writeTimeout'			=> 10,
 			'retryAttemptsPerUri'	=> 10,
-			'logLevel'				=> Logger::DEBUG,
+			'logLevel'				=> Logger::WARNING,
 			'loggerInstance'		=> null,
 			'dispatcherInstance'	=> null,
 		];
