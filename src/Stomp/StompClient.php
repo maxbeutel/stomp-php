@@ -117,7 +117,11 @@ class StompClient
 
 		$this->logger->debug('Writing frame data', ['data' => $data]);
 
-$this->startEventLoop(false);
+		// need to wait for receipt
+		// already bind events to socket but do NOT run eventloop yet
+		if ($frame->waitForReceipt()) {
+			$this->startEventLoop(false);
+		}
 
 		try {
 			$this->socketConnection->write($data);
@@ -126,6 +130,8 @@ $this->startEventLoop(false);
 			throw $e;
 		}
 
+		// need to wait for receipt
+		// register listener and NOW run eventloop, will be stopped within listener
 		if ($frame->waitForReceipt()) {
 			$this->logger->debug('Waiting for frame receipt');
 
@@ -146,11 +152,11 @@ $this->startEventLoop(false);
 
 			$this->dispatcher->addListener(SystemEventType::FRAME_RECEIPT, $listener);
 
- event_base_loop($this->base);
+			$this->runEventLoop();
 		}
 	}
 
-	protected function startEventLoop($x = true)
+	protected function startEventLoop($run = true)
 	{
 		$readCallback = function($buf, $arg) {
 			$readLength = 1024;
@@ -207,7 +213,14 @@ $this->startEventLoop(false);
 		event_buffer_base_set($eb, $this->base);
 		event_buffer_enable($eb, EV_READ);
 
-		if ($x) event_base_loop($this->base);
+		if ($run) {
+			$this->runEventLoop();
+		}
+	}
+
+	protected function runEventLoop()
+	{
+		event_base_loop($this->base);
 	}
 
 	public function subscribe($eventName, callable $listener)
