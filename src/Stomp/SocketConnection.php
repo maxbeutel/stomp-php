@@ -31,7 +31,8 @@ class SocketConnection
 {
 	protected $uris = [];
 	protected $retryAttemptsPerUri;
-	protected $connectionTimeout;
+	protected $connectTimeout;
+	protected $streamTimeout;
 	protected $logger;
 
 	protected $options = [];
@@ -40,7 +41,7 @@ class SocketConnection
 	protected $currentUriIndex = 0;
 	protected $currentRetryAttempt = 0;
 
-	public function __construct($uriString, $retryAttemptsPerUri, $connectionTimeout, Logger $logger)
+	public function __construct($uriString, $retryAttemptsPerUri, $connectTimeout, $streamTimeout, Logger $logger)
 	{
 		$defaultOptions = [
 			'randomize' => false,
@@ -76,7 +77,8 @@ class SocketConnection
         }
 
         $this->retryAttemptsPerUri = $retryAttemptsPerUri;
-        $this->connectionTimeout = $connectionTimeout;
+        $this->connectTimeout = $connectTimeout;
+        $this->streamTimeout = $streamTimeout;
         $this->options = array_merge($defaultOptions, $options);
         $this->logger = $logger;
 
@@ -114,9 +116,11 @@ class SocketConnection
 			while ($uri = $this->getNextUri()) {
 				$connectionErrorNumber = $connectionError = null;
 
-				$this->socket = @fsockopen($uri->getHostWithScheme(), $uri->getPort(), $connectionErrorNumber, $connectionError, $this->connectionTimeout);
+				$this->socket = @fsockopen($uri->getHostWithScheme(), $uri->getPort(), $connectionErrorNumber, $connectionError, $this->connectTimeout);
 
 				if (is_resource($this->socket)) {
+					stream_set_timeout($this->socket, $this->streamTimeout);
+
 					$this->logger->info(sprintf('Successfully connected to broker "%s" at attempt %d', $uri, $this->currentRetryAttempt));
 					return;
 				}
@@ -143,33 +147,47 @@ class SocketConnection
 		$this->connect();
 	}
 
+	public function tryOpen()
+	{
+		try {
+			$this->open();
+		} catch (ConnectionException $e) {
+			return false;
+		}
+
+		return true;
+	}
+
 	public function write($string)
 	{
 		$success = (bool) @fwrite($this->socket, $string, strlen($string));
 
 		if (!$success) {
-			$this->logger->warn('Could not write string to socket, trying to reconnect', ['string' => $string]);
-
-			$this->open();
-			$this->write($string);
+			throw new ConnectionException('Could not write string');
 		}
 	}
 
-	public function writeUnchecked($string)
+	public function tryWrite($string)
 	{
-		@fwrite($this->socket, $string, strlen($string));
+		try {
+			$this->write($string);
+		} catch (ConnectionException $e) {
+			return false;
+		}
+
+		return true;
 	}
 
 	public function read(callable $endPredicate)
 	{
-		if (!(bool) stream_socket_recvfrom($this->socket, 2, STREAM_PEEK)) {
+		if (!(bool) @stream_socket_recvfrom($this->socket, 2, STREAM_PEEK)) {
 			throw new ConnectionException('Unexpected EOF');
 		}
 
 		$data = '';
 
-		while (false !== ($char = fgetc($this->socket))) {
-		    if ($char === "\x00") {
+		while (false !== ($char = @fgetc($this->socket))) {
+		    if ($endPredicate($char) === true) {
 		    	break;
 		    }
 

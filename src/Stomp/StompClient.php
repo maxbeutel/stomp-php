@@ -63,8 +63,7 @@ class StompClient
 			'prefetchSize'			=> 1,
 			'connectTimeout'		=> 60,
 			'waitForReceipt'		=> false,
-			'readTimeout'			=> null,
-			'writeTimeout'			=> 10,
+			'streamTimeout'			=> 10,
 			'retryAttemptsPerUri'	=> 10,
 			'logLevel'				=> Logger::DEBUG,
 			'loggerInstance'		=> null,
@@ -88,7 +87,13 @@ class StompClient
 			$this->setLogger($logger);
 		}
 
-		$this->socketConnection = new SocketConnection($uriString, $this->options['retryAttemptsPerUri'], $this->options['connectTimeout'], $this->logger);
+		$this->socketConnection = new SocketConnection(
+			$uriString,
+			$this->options['retryAttemptsPerUri'],
+			$this->options['connectTimeout'],
+			$this->options['streamTimeout'],
+			$this->logger
+		);
 	}
 
 	public function getSessionId()
@@ -146,7 +151,12 @@ class StompClient
 	protected function startEventLoop()
 	{
 		$readCallback = function($socket, $what) {
-			$data = $this->socketConnection->read(function($chr) { return $chr ===  "\x00"; });
+			try {
+				$data = $this->socketConnection->read(function($char) { return $char ===  "\x00"; });
+			} catch (ConnectionException $e) {
+				$this->breakEventLoop();
+				throw $e;
+			}
 
 			$this->logger->debug('Read callback triggered', ['data' => $data]);
 
@@ -376,7 +386,7 @@ class StompClient
 			$headers['client-id'] = $this->options['clientId'];
 		}
 
-		$this->socketConnection->writeUnchecked((string) Frame::createNew('DISCONNECT', $headers));
+		$this->socketConnection->tryWrite((string) Frame::createNew('DISCONNECT', $headers));
 
 		$this->socketConnection->close();
 

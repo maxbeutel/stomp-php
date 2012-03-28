@@ -1,5 +1,6 @@
 - improve transaction handling, return transaction id on begin and/or dont require to specify transaction id in send call
 - find a good way to test produce/consume logic
 - handle exceptions/break event loop logic better... somehow...
+- try to reconnect on socket errors (EOF/could not write/etc)
 - update README and provide some documentation and install guide via composer
 - investigate exceptions thrown while running examples
