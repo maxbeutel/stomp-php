@@ -194,15 +194,14 @@ class StompClient
 		$errorCallback = function($buf, $code, $resource) {
 			$this->logger->debug('Error callback triggered', ['code' => $code]);
 
-			// @TODO throw ex
-			#$this->dispatcher->dispatch(SystemEventType::TRANSPORT_ERROR, new ErrorEvent(sprintf('Libevent error code %d', $code)));
+			$this->breakEventLoop();
+			throw new ConnectionException('Socket error', $code);
 		};
 
 		$this->logger->info('Starting event loop');
 
 		$this->base = event_base_new();
 
-		// @TODO take timeout in again
 		$eb = event_buffer_new($this->socketConnection->getRawSocket(), $readCallback, NULL, $errorCallback, $this->base);
 		event_buffer_timeout_set($eb, $this->options['readTimeout'], $this->options['writeTimeout']);
 		event_buffer_base_set($eb, $this->base);

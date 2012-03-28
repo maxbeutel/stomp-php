@@ -51,7 +51,6 @@ class SocketConnectionTest extends PHPUnit_Framework_TestCase
 		$manager = new DummySocketConnection('failover://(tcp://localhost:61614,tcp://localhost:61613)', 3, 10, $this->loggerMock);
 		$manager = new DummySocketConnection('failover://(tcp://localhost:61614,tcp://localhost:61613)?foo=bar', 3, 10, $this->loggerMock);
 		$manager = new DummySocketConnection('tcp://localhost:61614', 3, 10, $this->loggerMock);
-		$manager = new DummySocketConnection('ssl://localhost:61614', 3, 10, $this->loggerMock);
 	}
 
 	public function testInvalidUriString_1()

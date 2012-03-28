@@ -46,8 +46,8 @@ class Uri
 			throw new InvalidArgumentException('Invalid broker URI format');
 		}
 
-		if (!isset($uriParts['scheme']) || !in_array($uriParts['scheme'], ['tcp', 'ssl'], true)) {
-			throw new InvalidArgumentException('Scheme must be either tcp or ssl for now');
+		if (!isset($uriParts['scheme']) || !in_array($uriParts['scheme'], ['tcp'], true)) {
+			throw new InvalidArgumentException('Only tcp supported for now');
 		}
 
 		if (!isset($uriParts['port'])) {
